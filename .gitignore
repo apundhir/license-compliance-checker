@@ -1,8 +1,43 @@
 dist/
 __pycache__/
 *.pyc
+*.pyo
 .env
 .venv
 .lcc/
 dashboard/node_modules/
 dashboard/.next/
+
+# Test artifacts
+test-hf-model/
+test-*.sh
+
+# Temporary documentation (phase status files)
+*_COMPLETE.md
+*_STATUS.md
+*_PROGRESS.md
+*_PLAN.md
+*_SUMMARY.md
+*_REPORT.md
+CURRENT_STATUS.md
+GITHUB_SCANNING*.md
+DASHBOARD_INTEGRATION.md
+PROFESSIONAL_DASHBOARD_SETUP.md
+DEPLOYMENT_SUCCESS.md
+README_PHASE*.md
+PHASE*.md
+
+# Node modules in wrong location (should only be in dashboard/)
+/node_modules/
+/package-lock.json
+/package.json
+
+# Python cache
+.pytest_cache/
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
