@@ -1,0 +1,52 @@
+name: copyleft-friendly
+version: "1.0"
+description: Favors strong copyleft where compliance processes support reciprocal obligations.
+disclaimer: Ensure distribution plans are aligned with organisational open-source policies and legal guidance.
+default_context: distribution
+contexts:
+  distribution:
+    description: Products shipping binaries or source with established compliance workflows.
+    allow:
+      - GPL-2.0
+      - GPL-3.0
+      - LGPL-*
+      - MIT
+      - Apache-2.0
+    deny:
+      - AGPL-3.0
+      - SSPL-1.0
+    review:
+      - EPL-*
+      - MPL-*
+    deny_reasons:
+      AGPL-3.0: "Network copyleft terms unsupported by current compliance programme."
+      SSPL-1.0: "Service-source disclosure obligations conflict with business model."
+    review_reasons:
+      EPL-*: "Confirm compatibility with reciprocal provisions."
+      MPL-*: "Assess file-level copyleft boundaries."
+    dual_license_preference: prefer_order
+    preferred_order:
+      - GPL-3.0
+      - GPL-2.0
+      - LGPL-*
+      - Apache-2.0
+      - MIT
+    explanation:
+      - Chooses GPL family licenses when available to maintain reciprocity.
+  embedded:
+    description: Embedded devices with limited ability to distribute full source promptly.
+    allow:
+      - MIT
+      - Apache-2.0
+      - BSD-*
+    review:
+      - GPL-*
+      - LGPL-*
+    deny:
+      - AGPL-*
+    deny_reasons:
+      AGPL-*: "Network copyleft operates poorly on constrained devices."
+    review_reasons:
+      GPL-*: "Confirm firmware distribution mechanism meets source availability obligations."
+      LGPL-*: "Ensure user relinking provisions are satisfied."
+    dual_license_preference: avoid_copyleft

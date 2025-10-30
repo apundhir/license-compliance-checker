@@ -69,7 +69,9 @@ class RegistryResolver(Resolver):
             classifiers = info.get("classifiers", [])
             license_expression = self._extract_classifier_license(classifiers)
         if not license_expression:
-            return []
+            # Even if no license found, still return evidence with assumed_version
+            # This decouples version resolution from license resolution
+            license_expression = "UNKNOWN"
         confidence = 0.6
         home_page = info.get("home_page") if isinstance(info, dict) else None
         raw_data: Dict[str, object] = {}
@@ -135,7 +137,9 @@ class RegistryResolver(Resolver):
                 license_expression = version_data["license"]
 
         if not license_expression:
-            return []
+            # Even if no license found, still return evidence with assumed_version
+            # This decouples version resolution from license resolution
+            license_expression = "UNKNOWN"
 
         homepage = data.get("homepage")
         if version != "*" and not homepage and isinstance(data.get("dist"), dict):

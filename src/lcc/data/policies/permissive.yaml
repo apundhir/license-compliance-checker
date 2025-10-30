@@ -1,0 +1,54 @@
+name: permissive
+version: "1.0"
+description: Permissive baseline policy that flags copyleft and non-OSI licenses for review.
+disclaimer: LCC provides information and automation support. Consult legal counsel for authoritative guidance.
+default_context: internal
+contexts:
+  internal:
+    description: Internal tooling, research prototypes, or proof-of-concept deployments.
+    allow:
+      - MIT
+      - Apache-2.0
+      - BSD-*
+      - ISC
+      - CC0-1.0
+    deny:
+      - SSPL-1.0
+    review:
+      - GPL-*
+      - AGPL-*
+      - LGPL-*
+    deny_reasons:
+      SSPL-1.0: "Not OSI-approved; introduces service restrictions."
+    review_reasons:
+      GPL-*: "Copyleft terms may extend to the distributed product."
+      AGPL-*: "Network copyleft obligations require legal sign-off."
+      LGPL-*: "Confirm dynamic linking and attribution requirements."
+    dual_license_preference: most_permissive
+    explanation:
+      - Selects the most permissive option when multiple licenses exist.
+      - Unknown licenses default to review rather than automatic denial.
+  saas:
+    description: Hosted or managed service deployments exposed to customers.
+    allow:
+      - MIT
+      - Apache-2.0
+      - BSD-*
+      - ISC
+    deny:
+      - SSPL-1.0
+      - AGPL-*
+      - GPL-3.0
+    review:
+      - LGPL-*
+      - MPL-*
+    deny_reasons:
+      SSPL-1.0: "Service-level copyleft incompatible with SaaS offerings."
+      AGPL-*: "Network copyleft obligations conflict with hosted delivery."
+      GPL-3.0: "Strong copyleft unsuitable for proprietary SaaS deployments."
+    review_reasons:
+      LGPL-*: "Dynamic linking may be acceptable; verify deployment architecture."
+      MPL-*: "Ensure file-level copyleft obligations are understood."
+    dual_license_preference: avoid_copyleft
+    explanation:
+      - Avoids copyleft license paths when permissive alternatives exist.

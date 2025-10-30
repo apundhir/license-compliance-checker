@@ -8,12 +8,14 @@ Phase 1 (Foundation) focuses on the core license detection engine, multi-source 
 conda env create --prefix ./.conda-lcc --file environment.yml
 conda activate ./.conda-lcc
 pre-commit install
+python -m pip install -e .
+python -m pip install .[test]
 ```
 
-Run the unit test suite:
+Run the automated test suite:
 
 ```bash
-PYTHONPATH=src python -m unittest discover -s tests -v
+python -m pytest
 ```
 
 ## Supported Language Detectors
@@ -41,6 +43,24 @@ lcc interactive --report report.json
 - `lcc interactive --report report.json` launches the interactive explorer for a previously generated JSON report.
 - `LCC_OPA_URL=http://localhost:8181` enables remote policy evaluation through an OPA service.
 
+## REST API
+
+The FastAPI service exposes the scanning engine and policy metadata over HTTP. Launch it locally with:
+
+```bash
+lcc server --host 0.0.0.0 --port 8000
+```
+
+Key endpoints:
+
+- `GET /health` – readiness probe.
+- `GET /dashboard` – aggregated metrics (totals, distribution, trend).
+- `GET /scans` / `GET /scans/{id}` – near-real-time scan history and detailed reports.
+- `POST /scans` – run a scan (`{"path": "/workspace/project", "policy": "permissive"}`).
+- `GET /policies` / `GET /policies/{name}` – bundled policy catalogue for the UI.
+
+The SQLite database defaults to `~/.lcc/lcc.db`. Override via `LCC_DB_PATH`.
+
 ## Docker
 
 ```bash
@@ -50,6 +70,8 @@ docker compose up --build
 ```
 
 Adjust the override template (`docker-compose.override.yml.example`) to customise commands per environment.
+
+The default compose stack exposes the REST API at `http://localhost:8000` (service name `api`). Mount a workspace volume to surface local projects inside the container; user state (policies, database) is persisted under `/workspace/.lcc/`.
 
 ### Policy Management
 
@@ -139,12 +161,13 @@ See `docs/phase1_todo.md` for delivery tracking.
 ```bash
 cd dashboard
 npm install
-npm run dev # open http://localhost:3000
+npm run dev -- --hostname 0.0.0.0 --port 3000
+# open http://localhost:3000
 ```
 
 Environment variables:
 
-- `NEXT_PUBLIC_LCC_API_BASE_URL` – optional REST endpoint for live scan data (defaults to mock data).
+- `NEXT_PUBLIC_LCC_API_BASE_URL` – REST endpoint for live data (defaults to `http://localhost:8000`).
 - `LCC_OPA_URL`, `LCC_OPA_TOKEN`, `LCC_REDIS_URL` – forwarded automatically when running in CI for policy evaluation, decision logging, and queue metrics.
 
 ## Kubernetes Deployment

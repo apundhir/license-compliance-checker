@@ -14,6 +14,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence
 
+import uvicorn
 from rich.console import Console
 from rich.progress import Progress
 from rich.table import Table
@@ -27,6 +28,7 @@ from lcc.reporting.json_reporter import JSONReporter
 from lcc.reporting.markdown_reporter import MarkdownReporter
 from lcc.reporting.html_reporter import HTMLReporter
 from lcc.reporting.csv_reporter import CSVReporter
+from lcc.api.server import create_app
 from lcc.policy import PolicyAlternative, PolicyDecision, PolicyError, PolicyManager, evaluate_policy
 from lcc.policy.opa_client import OPAClient, OPAClientError
 from lcc.policy.decision_recorder import DecisionRecorder
@@ -186,6 +188,58 @@ def build_parser() -> argparse.ArgumentParser:
     generate_parser.add_argument("--compare", help="Compare against another JSON report")
     generate_parser.add_argument("--sign", action="store_true", help="Attach a SHA256 signature")
     generate_parser.set_defaults(func=handle_report_generate)
+
+    server_parser = subparsers.add_parser("server", help="Run the REST API service")
+    server_parser.add_argument("--host", default="0.0.0.0", help="Bind host (default: 0.0.0.0)")
+    server_parser.add_argument("--port", type=int, default=8000, help="Bind port (default: 8000)")
+    server_parser.add_argument("--reload", action="store_true", help="Enable auto-reload (development only)")
+    server_parser.add_argument("--config", help="Path to configuration file")
+    server_parser.set_defaults(func=handle_server)
+
+    # SBOM commands
+    sbom_parser = subparsers.add_parser("sbom", help="SBOM generation, validation, and signing")
+    sbom_sub = sbom_parser.add_subparsers(dest="sbom_command")
+
+    sbom_generate_parser = sbom_sub.add_parser("generate", help="Generate SBOM from scan result")
+    sbom_generate_parser.add_argument("scan_result", help="Path to scan result JSON file")
+    sbom_generate_parser.add_argument("--output", "-o", required=True, help="Output SBOM file path")
+    sbom_generate_parser.add_argument("--format", "-f", choices=["cyclonedx", "spdx"], default="cyclonedx", help="SBOM format")
+    sbom_generate_parser.add_argument("--sbom-format", choices=["json", "xml", "yaml", "tag-value"], default="json", help="Output file format")
+    sbom_generate_parser.add_argument("--project-name", help="Project name")
+    sbom_generate_parser.add_argument("--project-version", help="Project version")
+    sbom_generate_parser.add_argument("--author", help="Author/creator name")
+    sbom_generate_parser.add_argument("--supplier", help="Supplier/organization name")
+    sbom_generate_parser.set_defaults(func=handle_sbom_generate)
+
+    sbom_validate_parser = sbom_sub.add_parser("validate", help="Validate an SBOM file")
+    sbom_validate_parser.add_argument("sbom_file", help="Path to SBOM file")
+    sbom_validate_parser.add_argument("--format", "-f", choices=["cyclonedx", "spdx", "auto"], default="auto", help="SBOM format")
+    sbom_validate_parser.add_argument("--check-licenses", action="store_true", help="Also validate license expressions")
+    sbom_validate_parser.set_defaults(func=handle_sbom_validate)
+
+    sbom_sign_parser = sbom_sub.add_parser("sign", help="Sign an SBOM file with GPG")
+    sbom_sign_parser.add_argument("sbom_file", help="Path to SBOM file")
+    sbom_sign_parser.add_argument("--key", "-k", required=True, help="GPG key ID or email")
+    sbom_sign_parser.add_argument("--passphrase", "-p", help="Key passphrase")
+    sbom_sign_parser.add_argument("--output", "-o", help="Output path")
+    sbom_sign_parser.add_argument("--detached", action="store_true", help="Create detached signature")
+    sbom_sign_parser.add_argument("--gpg-home", help="GPG home directory")
+    sbom_sign_parser.set_defaults(func=handle_sbom_sign)
+
+    sbom_verify_parser = sbom_sub.add_parser("verify", help="Verify an SBOM signature")
+    sbom_verify_parser.add_argument("sbom_file", help="Path to SBOM file")
+    sbom_verify_parser.add_argument("--signature", "-s", help="Path to detached signature file")
+    sbom_verify_parser.add_argument("--gpg-home", help="GPG home directory")
+    sbom_verify_parser.set_defaults(func=handle_sbom_verify)
+
+    sbom_hash_parser = sbom_sub.add_parser("hash", help="Generate cryptographic hash of SBOM")
+    sbom_hash_parser.add_argument("sbom_file", help="Path to SBOM file")
+    sbom_hash_parser.add_argument("--algorithm", "-a", choices=["sha256", "sha512", "sha1"], default="sha256", help="Hash algorithm")
+    sbom_hash_parser.set_defaults(func=handle_sbom_hash)
+
+    sbom_keys_parser = sbom_sub.add_parser("list-keys", help="List available GPG keys")
+    sbom_keys_parser.add_argument("--gpg-home", help="GPG home directory")
+    sbom_keys_parser.set_defaults(func=handle_sbom_list_keys)
 
     return parser
 
@@ -1041,6 +1095,24 @@ def handle_report_generate(args: argparse.Namespace) -> int:
     return 0
 
 
+def handle_server(args: argparse.Namespace) -> int:
+    config_path = Path(args.config).expanduser() if getattr(args, "config", None) else None
+    if args.reload:
+        if config_path:
+            os.environ["LCC_CONFIG_PATH"] = str(config_path)
+        uvicorn.run(
+            "lcc.api.server:create_app",
+            host=args.host,
+            port=args.port,
+            reload=True,
+            factory=True,
+        )
+    else:
+        app = create_app(config_path)
+        uvicorn.run(app, host=args.host, port=args.port, reload=False)
+    return 0
+
+
 def apply_policy_to_report(
     report: ScanReport,
     config: LCCConfig,
@@ -1339,6 +1411,238 @@ def handle_queue_status(args: argparse.Namespace) -> int:
         f"Queued: [bold]{stats['queued']}[/bold]    Dead letter: [bold]{stats['dead']}[/bold]"
     )
     return 0
+
+
+def handle_sbom_generate(args, console: Console) -> int:
+    """Handle SBOM generation command."""
+    from lcc.sbom import CycloneDXGenerator, SPDXGenerator
+    from rich.panel import Panel
+
+    try:
+        console.print(f"[cyan]Generating {args.format.upper()} SBOM...[/cyan]")
+
+        scan_result_path = Path(args.scan_result)
+        output_path = Path(args.output)
+
+        if args.format == "cyclonedx":
+            generator = CycloneDXGenerator()
+            generator.generate_from_file(
+                scan_result_path=scan_result_path,
+                output_path=output_path,
+                format=args.sbom_format,
+                project_name=args.project_name,
+                project_version=args.project_version,
+                author=args.author,
+                supplier=args.supplier,
+            )
+        else:  # spdx
+            generator = SPDXGenerator()
+            generator.generate_from_file(
+                scan_result_path=scan_result_path,
+                output_path=output_path,
+                format=args.sbom_format,
+                project_name=args.project_name,
+                project_version=args.project_version,
+                creator=args.author,
+            )
+
+        console.print(
+            Panel(
+                f"[green]✓[/green] SBOM generated successfully\n"
+                f"Format: {args.format.upper()} ({args.sbom_format})\n"
+                f"Output: {output_path}",
+                title="Success",
+                border_style="green",
+            )
+        )
+        return 0
+
+    except Exception as e:
+        console.print(f"[red]Error generating SBOM: {e}[/red]")
+        return 1
+
+
+def handle_sbom_validate(args, console: Console) -> int:
+    """Handle SBOM validation command."""
+    from lcc.sbom import SBOMValidator
+
+    try:
+        sbom_file = Path(args.sbom_file)
+        console.print(f"[cyan]Validating SBOM: {sbom_file}[/cyan]")
+
+        validator = SBOMValidator()
+
+        # Validate structure
+        is_valid, errors = validator.validate(sbom_file, sbom_type=args.format)
+
+        if is_valid:
+            console.print("[green]✓ SBOM structure is valid[/green]")
+        else:
+            console.print("[red]✗ SBOM validation failed:[/red]")
+            for error in errors:
+                console.print(f"  [red]- {error}[/red]")
+
+        # Validate licenses if requested
+        if args.check_licenses:
+            console.print("\n[cyan]Validating license expressions...[/cyan]")
+            licenses_valid, warnings = validator.validate_licenses(sbom_file)
+
+            if licenses_valid:
+                console.print("[green]✓ All licenses are valid[/green]")
+            else:
+                console.print("[yellow]⚠ License validation warnings:[/yellow]")
+                for warning in warnings:
+                    console.print(f"  [yellow]- {warning}[/yellow]")
+
+        return 0 if is_valid else 1
+
+    except Exception as e:
+        console.print(f"[red]Error validating SBOM: {e}[/red]")
+        return 1
+
+
+def handle_sbom_sign(args, console: Console) -> int:
+    """Handle SBOM signing command."""
+    from lcc.sbom import SBOMSigner
+    from rich.panel import Panel
+    import getpass
+
+    try:
+        sbom_file = Path(args.sbom_file)
+
+        # Prompt for passphrase if not provided
+        passphrase = args.passphrase
+        if not passphrase:
+            passphrase = getpass.getpass("Enter key passphrase: ")
+
+        console.print(f"[cyan]Signing SBOM with key: {args.key}[/cyan]")
+
+        gpg_home = Path(args.gpg_home) if args.gpg_home else None
+        signer = SBOMSigner(gpg_home=gpg_home)
+
+        output_path = Path(args.output) if args.output else None
+        output = signer.sign(
+            sbom_path=sbom_file,
+            key_id=args.key,
+            passphrase=passphrase or None,
+            detached=args.detached,
+            output_path=output_path,
+        )
+
+        sig_type = "Detached signature" if args.detached else "Signed SBOM"
+        console.print(
+            Panel(
+                f"[green]✓[/green] SBOM signed successfully\n"
+                f"Type: {sig_type}\n"
+                f"Output: {output}",
+                title="Success",
+                border_style="green",
+            )
+        )
+        return 0
+
+    except Exception as e:
+        console.print(f"[red]Error signing SBOM: {e}[/red]")
+        return 1
+
+
+def handle_sbom_verify(args, console: Console) -> int:
+    """Handle SBOM verification command."""
+    from lcc.sbom import SBOMSigner
+    from rich.panel import Panel
+
+    try:
+        sbom_file = Path(args.sbom_file)
+        signature_path = Path(args.signature) if args.signature else None
+
+        console.print(f"[cyan]Verifying SBOM signature...[/cyan]")
+
+        gpg_home = Path(args.gpg_home) if args.gpg_home else None
+        signer = SBOMSigner(gpg_home=gpg_home)
+
+        is_valid, info = signer.verify(sbom_path=sbom_file, signature_path=signature_path)
+
+        if is_valid:
+            console.print(
+                Panel(
+                    f"[green]✓[/green] Signature is valid\n{info}",
+                    title="Verified",
+                    border_style="green",
+                )
+            )
+            return 0
+        else:
+            console.print(
+                Panel(
+                    f"[red]✗[/red] {info}",
+                    title="Verification Failed",
+                    border_style="red",
+                )
+            )
+            return 1
+
+    except Exception as e:
+        console.print(f"[red]Error verifying signature: {e}[/red]")
+        return 1
+
+
+def handle_sbom_hash(args, console: Console) -> int:
+    """Handle SBOM hashing command."""
+    from lcc.sbom import SBOMSigner
+    from rich.panel import Panel
+
+    try:
+        sbom_file = Path(args.sbom_file)
+        signer = SBOMSigner()
+        hash_value = signer.hash_sbom(sbom_file, algorithm=args.algorithm)
+
+        console.print(
+            Panel(
+                f"[cyan]{args.algorithm.upper()}:[/cyan] {hash_value}",
+                title=f"SBOM Hash ({sbom_file.name})",
+                border_style="cyan",
+            )
+        )
+        return 0
+
+    except Exception as e:
+        console.print(f"[red]Error generating hash: {e}[/red]")
+        return 1
+
+
+def handle_sbom_list_keys(args, console: Console) -> int:
+    """Handle listing GPG keys command."""
+    from lcc.sbom import SBOMSigner
+
+    try:
+        gpg_home = Path(args.gpg_home) if args.gpg_home else None
+        signer = SBOMSigner(gpg_home=gpg_home)
+        keys = signer.list_keys()
+
+        if not keys:
+            console.print("[yellow]No GPG keys found[/yellow]")
+            return 0
+
+        table = Table(title="Available GPG Keys")
+        table.add_column("Key ID", style="cyan")
+        table.add_column("Type", style="magenta")
+        table.add_column("Length", style="blue")
+        table.add_column("User IDs", style="green")
+
+        for key in keys:
+            table.add_row(
+                key["keyid"],
+                key["type"],
+                str(key["length"]),
+                "\n".join(key["uids"]),
+            )
+
+        console.print(table)
+        return 0
+
+    except Exception as e:
+        console.print(f"[red]Error listing keys: {e}[/red]")
+        return 1
 
 
 if __name__ == "__main__":  # pragma: no cover

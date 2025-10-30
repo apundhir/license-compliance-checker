@@ -233,27 +233,43 @@ class JavaScriptDetector(Detector):
         return self._parse_pnpm_lock_text(path.read_text(encoding="utf-8"))
 
     def _parse_node_modules(self, project_root: Path) -> Iterable[DependencySpec]:
-        node_modules = project_root / "node_modules"
-        if not node_modules.exists():
-            return []
+        """
+        Parse installed packages from node_modules directory.
+
+        NOTE: This scans installed packages in node_modules/.
+        For source code scans (GitHub repos), these are typically unwanted as they
+        represent installed dependencies, not declarations.
+
+        This method now skips node_modules scanning by default to avoid scanning
+        installed libraries in source repos.
+        """
         results: List[DependencySpec] = []
-        for package_json in node_modules.glob("**/package.json"):
-            try:
-                data = json.loads(package_json.read_text(encoding="utf-8"))
-            except json.JSONDecodeError:
-                continue
-            name = data.get("name")
-            version = data.get("version")
-            if not isinstance(name, str) or not isinstance(version, str):
-                continue
-            metadata: Dict[str, object] = {"source": f"node_modules/{package_json.relative_to(node_modules)}"}
-            if isinstance(data.get("license"), str):
-                metadata["license"] = data["license"]
-            if isinstance(data.get("licenses"), list):
-                metadata["licenses"] = data["licenses"]
-            if isinstance(data.get("bundledDependencies"), list):
-                metadata["bundledDependencies"] = data["bundledDependencies"]
-            results.append((name, version, metadata))
+
+        # Skip scanning node_modules for source code scans
+        # Uncomment the lines below if you need to scan installed packages
+        # (e.g., for Docker images or deployed code)
+
+        # node_modules = project_root / "node_modules"
+        # if not node_modules.exists():
+        #     return []
+        # for package_json in node_modules.glob("**/package.json"):
+        #     try:
+        #         data = json.loads(package_json.read_text(encoding="utf-8"))
+        #     except json.JSONDecodeError:
+        #         continue
+        #     name = data.get("name")
+        #     version = data.get("version")
+        #     if not isinstance(name, str) or not isinstance(version, str):
+        #         continue
+        #     metadata: Dict[str, object] = {"source": f"node_modules/{package_json.relative_to(node_modules)}"}
+        #     if isinstance(data.get("license"), str):
+        #         metadata["license"] = data["license"]
+        #     if isinstance(data.get("licenses"), list):
+        #         metadata["licenses"] = data["licenses"]
+        #     if isinstance(data.get("bundledDependencies"), list):
+        #         metadata["bundledDependencies"] = data["bundledDependencies"]
+        #     results.append((name, version, metadata))
+
         return results
 
     # -------------------------

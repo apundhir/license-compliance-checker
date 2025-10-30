@@ -35,6 +35,9 @@ class LCCConfig:
     policy_context: Optional[str] = os.getenv("LCC_POLICY_CONTEXT")
     opa_url: Optional[str] = os.getenv("LCC_OPA_URL")
     opa_token: Optional[str] = os.getenv("LCC_OPA_TOKEN")
+    database_path: Path = field(
+        default_factory=lambda: Path(os.getenv("LCC_DB_PATH", Path.home() / ".lcc" / "lcc.db"))
+    )
     decision_log_path: Path = field(
         default_factory=lambda: Path(os.getenv("LCC_DECISION_LOG", Path.home() / ".lcc" / "decisions.jsonl"))
     )
@@ -43,6 +46,9 @@ class LCCConfig:
     template_dir: Path = field(
         default_factory=lambda: Path(os.getenv("LCC_TEMPLATE_DIR", Path.home() / ".lcc" / "template-policies"))
     )
+    # Treatment for components with UNKNOWN licenses when no policy is applied
+    # Options: "violation" (default), "warning", "pass"
+    unknown_license_treatment: str = os.getenv("LCC_UNKNOWN_LICENSE_TREATMENT", "violation")
 
 
 def load_config(path: Optional[Path] = None) -> LCCConfig:
@@ -70,6 +76,8 @@ def load_config(path: Optional[Path] = None) -> LCCConfig:
         cfg.template_dir = Path(cfg.template_dir)
     if isinstance(cfg.cache_dir, str):
         cfg.cache_dir = Path(cfg.cache_dir)
+    if isinstance(cfg.database_path, str):
+        cfg.database_path = Path(cfg.database_path)
     if isinstance(cfg.cache_ttls, dict):
         cfg.cache_ttls = {str(key): int(value) for key, value in cfg.cache_ttls.items()}
     return cfg

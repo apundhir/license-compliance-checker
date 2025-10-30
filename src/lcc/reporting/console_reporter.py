@@ -88,14 +88,14 @@ class ConsoleReporter:
         assumptions = component.metadata.get("assumptions", []) if isinstance(component.metadata, dict) else []
         assumed_version = next((item.get("value") for item in assumptions if item.get("type") == "version"), None)
         label = f"{component.type.value}:{component.name}@{component.version}"
-        if assumed_version and component.version in (None, "*"):
-            label += f" (~{assumed_version})"
+        if assumed_version:
+            label += f" (~{assumed_version} assumed)"
         return label
 
     def _format_license(self, finding) -> str:
         license_text = finding.resolved_license or "Unknown"
         assumptions = finding.component.metadata.get("assumptions", []) if isinstance(finding.component.metadata, dict) else []
         assumed_version = next((item.get("value") for item in assumptions if item.get("type") == "version"), None)
-        if assumed_version and finding.component.version in (None, "*"):
+        if assumed_version:
             license_text += " (assumed latest)"
         return license_text

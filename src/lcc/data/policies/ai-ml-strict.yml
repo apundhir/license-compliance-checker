@@ -1,0 +1,133 @@
+---
+name: ai-ml-strict
+description: Strict policy for commercial AI/ML products avoiding use restrictions and copyleft
+version: "1.0.0"
+contexts:
+  production:
+    allowed:
+      # Traditional permissive only
+      - MIT
+      - Apache-2.0
+      - BSD-2-Clause
+      - BSD-3-Clause
+      - ISC
+
+      # AI - truly permissive only
+      - apache-2.0-ai
+      - mit-ai
+      - mistral-ai
+
+      # Datasets - public domain and attribution-only
+      - cc0-1.0
+      - cc-by-4.0
+      - odc-by-1.0
+      - cdla-permissive-1.0
+      - coco
+      - openimages
+
+    review:
+      # Need careful legal review for production use
+      - cc-by-3.0  # Older CC version
+
+    denied:
+      # All RAIL licenses (use restrictions)
+      - openrail
+      - openrail-m
+      - openrail++
+      - bigscience-bloom-rail-1.0
+      - bigscience-openrail-m
+      - creativeml-openrail-m
+
+      # Meta Llama (user threshold + restrictions)
+      - llama-2
+      - llama-3
+      - llama-3.1
+
+      # Google Gemma (restrictions)
+      - deepmind-gemma
+
+      # All non-commercial
+      - cc-by-nc-4.0
+      - cc-by-nc-sa-4.0
+      - cc-by-nc-nd-4.0
+
+      # All no-derivatives
+      - cc-by-nd-4.0
+
+      # All ShareAlike (copyleft)
+      - cc-by-sa-4.0
+      - cc-by-sa-3.0
+      - odbl-1.0
+      - cdla-sharing-1.0
+
+      # Proprietary
+      - openai-gpt
+      - anthropic-claude
+      - cohere
+      - ai21-jurassic
+
+      # Research-only
+      - imagenet
+      - kaggle-competition
+
+      # All copyleft
+      - GPL-2.0
+      - GPL-3.0
+      - AGPL-3.0
+      - LGPL-2.1
+      - LGPL-3.0
+      - MPL-2.0
+
+  development:
+    allowed:
+      # Same as production
+      - MIT
+      - Apache-2.0
+      - BSD-2-Clause
+      - BSD-3-Clause
+      - ISC
+      - apache-2.0-ai
+      - mit-ai
+      - mistral-ai
+      - cc0-1.0
+      - cc-by-4.0
+      - odc-by-1.0
+      - cdla-permissive-1.0
+
+    review:
+      # Can use for dev/testing only
+      - openrail
+      - openrail-m
+      - llama-2
+      - llama-3
+      - deepmind-gemma
+      - cc-by-sa-4.0
+
+    denied:
+      # Still deny non-commercial and proprietary
+      - cc-by-nc-4.0
+      - cc-by-nc-sa-4.0
+      - openai-gpt
+      - anthropic-claude
+      - imagenet
+      - GPL-3.0
+      - AGPL-3.0
+
+disclaimer: |
+  This is a strict commercial policy suitable for:
+  - SaaS products
+  - Embedded AI systems
+  - Commercial AI APIs
+  - Mobile/desktop applications with AI
+
+  It excludes:
+  - All licenses with use-based restrictions
+  - All copyleft licenses (including ShareAlike)
+  - All non-commercial licenses
+  - Models/datasets requiring special agreements
+
+  Always verify:
+  - No use restrictions apply to your use case
+  - Attribution requirements are met
+  - Model weights are redistributable (if needed)
+  - Terms of service for model hosting

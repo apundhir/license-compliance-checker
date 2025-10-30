@@ -54,10 +54,10 @@ class MarkdownReporter:
                 assumptions = finding.component.metadata.get("assumptions", []) if isinstance(finding.component.metadata, dict) else []
                 assumed_version = next((item.get("value") for item in assumptions if item.get("type") == "version"), None)
                 component_label = f"`{finding.component.name}` @ `{finding.component.version}`"
-                if assumed_version and finding.component.version in (None, "*"):
+                if assumed_version:
                     component_label += f" (~`{assumed_version}` assumed)"
                 license_text = finding.resolved_license or "UNKNOWN"
-                if assumed_version and finding.component.version in (None, "*"):
+                if assumed_version:
                     license_text += " (assumed latest)"
                 lines.append(
                     f"- {component_label} — resolved: `{license_text}` (confidence {finding.confidence:.2f}, status {status})"

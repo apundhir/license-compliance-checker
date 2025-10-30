@@ -12,6 +12,10 @@ from lcc.detection.python import PythonDetector
 from lcc.detection.java import MavenDetector
 from lcc.detection.gradle import GradleDetector
 from lcc.detection.rust import CargoDetector
+from lcc.detection.ruby import RubyDetector
+from lcc.detection.dotnet import DotNetDetector
+from lcc.detection.huggingface import HuggingFaceDetector
+from lcc.detection.hf_datasets import HuggingFaceDatasetDetector
 from lcc.detection.base import Detector
 from lcc.resolution.base import Resolver
 from lcc.resolution.clearlydefined import ClearlyDefinedResolver
@@ -22,15 +26,21 @@ from lcc.resolution.scancode import ScanCodeResolver
 
 
 def build_detectors() -> List[Detector]:
-    """Return the Phase 1 detector set."""
+    """Return the detector set (Phase 1-3)."""
 
     return [
+        # Traditional package detectors (Phase 1-2)
         PythonDetector(),
         JavaScriptDetector(),
         GoDetector(),
         MavenDetector(),
         GradleDetector(),
         CargoDetector(),
+        RubyDetector(),
+        DotNetDetector(),
+        # AI/ML detectors (Phase 3)
+        HuggingFaceDetector(),
+        HuggingFaceDatasetDetector(),
     ]
 
 

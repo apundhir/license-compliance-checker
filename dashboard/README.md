@@ -1,36 +1,104 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# [shadcn/ui sidebar](https://shadcn-ui-sidebar.salimi.my) &middot; [![Author Salimi](https://img.shields.io/badge/Author-Salimi-%3C%3E)](https://www.salimi.my)
 
-## Getting Started
+A stunning and functional retractable sidebar for Next.js built on top of [shadcn/ui](https://ui.shadcn.com) complete with desktop and mobile responsiveness.
 
-First, run the development server:
+## Features
+
+- Retractable mini and wide sidebar
+- Scrollable sidebar menu
+- Sheet menu for mobile
+- Grouped menu with labels
+- Collapsible submenu
+- Extracted menu items list
+
+## Tech/framework used
+
+- Next.js 14
+- Shadcn/ui
+- Tailwind CSS
+- TypeScript
+- Zustand
+
+## Installation
+
+### Custom registry
+
+If you are using @shadcn/ui 2.0.0 or later, you can install the component directly from the registry.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npx shadcn@latest add https://raw.githubusercontent.com/salimi-my/shadcn-ui-sidebar/refs/heads/master/public/registry/shadcn-sidebar.json
+
+or
+
+npx shadcn@latest add https://shadcn-ui-sidebar.salimi.my/registry/shadcn-sidebar.json
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Usage example for Nextjs
+```tsx
+//layout.tsx
+import AdminPanelLayout from "@/components/admin-panel/admin-panel-layout";
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+export default async function Layout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return <AdminPanelLayout>{children}</AdminPanelLayout>;
+}
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+//page.tsx
+import { ContentLayout } from "@/components/admin-panel/content-layout";
 
-## Learn More
+export default function Page() {
+  return (
+    <ContentLayout title="Test">
+      <div>Test</div>
+    </ContentLayout>
+  );
+}
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Starting the project locally
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Clone the repository
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+   ```bash
+   git clone https://github.com/salimi-my/shadcn-ui-sidebar
+   ```
 
-## Deploy on Vercel
+2. Install dependencies
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+   ```bash
+   cd shadcn-ui-sidebar
+   npm install
+   ```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+3. Run the development server
+
+   ```bash
+   npm run dev
+   ```
+
+## Demo
+
+The app is hosted on Vercel. [Click here](https://shadcn-ui-sidebar.salimi.my) to visit.
+<br>
+Direct demo link: `https://shadcn-ui-sidebar.salimi.my`
+
+## Screenshots
+
+#### Light mode
+
+![Light mode](/screenshots/screenshot-1.png)
+
+#### Dark mode
+
+![Dark mode](/screenshots/screenshot-2.png)
+
+#### Mini sidebar
+
+![Mini sidebar](/screenshots/screenshot-3.png)
+
+#### Sheet menu
+
+<img src="/screenshots/screenshot-4.png" width="300">

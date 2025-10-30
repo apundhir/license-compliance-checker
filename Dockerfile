@@ -18,11 +18,12 @@ FROM python:3.11-alpine AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    LCC_CACHE_DIR=/var/cache/lcc
+    LCC_CACHE_DIR=/var/cache/lcc \
+    PASSLIB_MAX_PASSWORD_SIZE=4096
 RUN apk add --no-cache git \
     && addgroup -S lcc && adduser -S lcc -G lcc \
-    && mkdir -p ${LCC_CACHE_DIR} /workspace \
-    && chown -R lcc:lcc ${LCC_CACHE_DIR} /workspace
+    && mkdir -p ${LCC_CACHE_DIR} /workspace /var/lib/lcc \
+    && chown -R lcc:lcc ${LCC_CACHE_DIR} /workspace /var/lib/lcc
 
 COPY --from=builder /opt/lcc /opt/lcc
 
@@ -31,7 +32,7 @@ WORKDIR /workspace
 
 ENV PATH="/opt/lcc/bin:$PATH"
 
-VOLUME ["/workspace"]
+VOLUME ["/workspace", "/var/lib/lcc"]
 
 ENTRYPOINT ["lcc"]
 CMD ["--help"]

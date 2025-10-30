@@ -1,0 +1,159 @@
+---
+name: ai-ml-research
+description: Permissive policy for academic and non-commercial AI/ML research
+version: "1.0.0"
+contexts:
+  research:
+    allowed:
+      # All traditional open source
+      - MIT
+      - Apache-2.0
+      - BSD-2-Clause
+      - BSD-3-Clause
+      - ISC
+      - MPL-2.0
+
+      # Weak copyleft OK for research
+      - LGPL-2.1
+      - LGPL-3.0
+
+      # All AI model licenses (research use is typically allowed)
+      - openrail
+      - openrail-m
+      - openrail++
+      - bigscience-bloom-rail-1.0
+      - bigscience-openrail-m
+      - creativeml-openrail-m
+      - llama-2
+      - llama-3
+      - llama-3.1
+      - deepmind-gemma
+      - apache-2.0-ai
+      - mit-ai
+      - mistral-ai
+
+      # All permissive and non-commercial dataset licenses
+      - cc0-1.0
+      - cc-by-4.0
+      - cc-by-3.0
+      - cc-by-sa-4.0
+      - cc-by-sa-3.0
+      - cc-by-nc-4.0  # Non-commercial OK for research
+      - cc-by-nc-sa-4.0
+      - odc-by-1.0
+      - odbl-1.0
+      - cdla-permissive-1.0
+      - cdla-sharing-1.0
+      - pddl-1.0
+      - imagenet  # Research-only OK
+      - coco
+      - openimages
+
+    review:
+      # No-derivatives - limits research flexibility
+      - cc-by-nd-4.0
+      - cc-by-nc-nd-4.0
+
+      # Strong copyleft - may limit publication
+      - GPL-3.0
+      - AGPL-3.0
+
+      # Proprietary APIs - cost and terms
+      - openai-gpt
+      - anthropic-claude
+      - cohere
+      - ai21-jurassic
+
+      # Competition-only
+      - kaggle-competition
+
+    denied:
+      # None - research is typically unrestricted
+      # Only deny if incompatible with research ethics
+      []
+
+  publication:
+    allowed:
+      # For models/code included in publications
+      - MIT
+      - Apache-2.0
+      - BSD-2-Clause
+      - BSD-3-Clause
+
+      # AI licenses compatible with research publication
+      - openrail-m
+      - apache-2.0-ai
+      - mit-ai
+      - mistral-ai
+
+      # Datasets that can be cited/referenced
+      - cc0-1.0
+      - cc-by-4.0
+      - cc-by-sa-4.0
+      - odc-by-1.0
+      - cdla-permissive-1.0
+      - imagenet
+      - coco
+
+    review:
+      # May require special attribution
+      - llama-2
+      - llama-3
+      - deepmind-gemma
+      - bigscience-bloom-rail-1.0
+
+      # Non-commercial - verify publisher's policy
+      - cc-by-nc-4.0
+      - cc-by-nc-sa-4.0
+
+    denied:
+      # Cannot redistribute in publication
+      - openai-gpt  # API-only
+      - anthropic-claude  # API-only
+      - kaggle-competition  # Cannot redistribute
+
+  teaching:
+    allowed:
+      # All non-commercial uses
+      - MIT
+      - Apache-2.0
+      - BSD-2-Clause
+      - BSD-3-Clause
+      - openrail-m
+      - llama-2
+      - llama-3
+      - apache-2.0-ai
+      - cc0-1.0
+      - cc-by-4.0
+      - cc-by-nc-4.0  # Perfect for teaching
+      - cc-by-sa-4.0
+      - imagenet
+      - coco
+
+    review:
+      # Proprietary - may have education pricing
+      - openai-gpt
+      - anthropic-claude
+
+    denied:
+      # Competition datasets not suitable for teaching
+      - kaggle-competition
+
+disclaimer: |
+  This research policy is designed for:
+  - Academic research
+  - Student projects
+  - Non-commercial experiments
+  - Course assignments
+  - Publications and papers
+
+  Key considerations:
+  - Most AI licenses allow research use
+  - Non-commercial licenses (CC BY-NC) are acceptable
+  - Research-only datasets (ImageNet) are allowed
+  - Verify attribution requirements for publications
+  - Check if models can be redistributed in papers
+  - Some licenses require citing original work
+
+  For commercial spinoffs or technology transfer, switch to
+  ai-ml-permissive or ai-ml-strict policy.

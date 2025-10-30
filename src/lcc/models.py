@@ -18,6 +18,11 @@ class ComponentType(str, Enum):
     JAVA = "java"
     GRADLE = "gradle"
     RUST = "rust"
+    RUBY = "ruby"
+    DOTNET = "dotnet"
+    PHP = "php"
+    AI_MODEL = "ai_model"
+    DATASET = "dataset"
     GENERIC = "generic"
 
 
@@ -82,3 +87,39 @@ class ScanReport:
     findings: List[ComponentFinding]
     summary: ScanSummary
     errors: List[str] = field(default_factory=list)
+
+
+class Status(str, Enum):
+    """Component compliance status."""
+
+    PASS = "pass"
+    WARNING = "warning"
+    VIOLATION = "violation"
+    ERROR = "error"
+
+
+@dataclass(slots=True)
+class ComponentResult:
+    """
+    Component result with policy evaluation status.
+    Used by SBOM generators and API.
+    """
+
+    component: Component
+    status: Status
+    licenses: List[LicenseEvidence] = field(default_factory=list)
+    violations: List[str] = field(default_factory=list)
+    warnings: List[str] = field(default_factory=list)
+
+
+@dataclass(slots=True)
+class ScanResult:
+    """
+    Scan result with all components and their evaluation results.
+    Used by SBOM generators and API.
+    """
+
+    components: List[Component]
+    component_results: List[ComponentResult]
+    scan_id: str = ""
+    timestamp: datetime = field(default_factory=datetime.utcnow)

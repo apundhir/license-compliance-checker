@@ -115,32 +115,70 @@ class PythonDetector(Detector):
     # -------------------------
 
     def _parse_requirements_txt(self, project_root: Path) -> Iterable[RequirementSpec]:
-        path = project_root / "requirements.txt"
-        if not path.exists():
-            return []
+        """
+        Parse requirements files from various locations and naming patterns.
+
+        Searches for:
+        - requirements.txt (root)
+        - requirements/*.txt (subdirectory pattern, common for prod/dev/test splits)
+        - requirements/*.in (pip-tools input files)
+        - requirements-*.txt (prefixed variants like requirements-dev.txt)
+        """
         results: List[RequirementSpec] = []
-        for line in path.read_text(encoding="utf-8").splitlines():
-            line = line.strip()
-            if not line or line.startswith("#") or line.startswith("-r"):
-                continue
+
+        # Collect all requirements files with common naming patterns
+        requirements_files: List[Path] = []
+
+        # Root requirements.txt
+        root_req = project_root / "requirements.txt"
+        if root_req.exists():
+            requirements_files.append(root_req)
+
+        # Subdirectory patterns: requirements/*.txt and requirements/*.in
+        requirements_files.extend(project_root.glob("requirements/*.txt"))
+        requirements_files.extend(project_root.glob("requirements/*.in"))
+
+        # Prefixed variants: requirements-*.txt (e.g., requirements-dev.txt)
+        requirements_files.extend(project_root.glob("requirements-*.txt"))
+
+        # Parse each file found
+        for path in requirements_files:
             try:
-                req = Requirement(line)
-            except Exception:
+                content = path.read_text(encoding="utf-8")
+            except (OSError, UnicodeDecodeError):
                 continue
-            version = None
-            specifier = str(req.specifier) if req.specifier else None
-            if req.specifier and len(req.specifier) == 1:
-                operator, value = next(iter(req.specifier._specs))._spec
-                if operator == "==":
-                    version = value
-            metadata: Dict[str, object] = {"requirement": line}
-            if specifier and not version:
-                metadata["specifier"] = specifier
-            if req.marker:
-                metadata["marker"] = str(req.marker)
-            if req.extras:
-                metadata["extras"] = sorted(req.extras)
-            results.append((req.name, version, metadata))
+
+            # Determine source label for metadata
+            relative_path = path.relative_to(project_root)
+            source_label = str(relative_path)
+
+            for line in content.splitlines():
+                line = line.strip()
+                # Skip empty lines, comments, and -r includes (to avoid duplicates)
+                if not line or line.startswith("#") or line.startswith("-r"):
+                    continue
+                # Skip constraint files (-c) and editable installs (-e) for now
+                if line.startswith("-c") or line.startswith("-e"):
+                    continue
+                try:
+                    req = Requirement(line)
+                except Exception:
+                    continue
+                version = None
+                specifier = str(req.specifier) if req.specifier else None
+                if req.specifier and len(req.specifier) == 1:
+                    operator, value = next(iter(req.specifier._specs))._spec
+                    if operator == "==":
+                        version = value
+                metadata: Dict[str, object] = {"requirement": line, "source": source_label}
+                if specifier and not version:
+                    metadata["specifier"] = specifier
+                if req.marker:
+                    metadata["marker"] = str(req.marker)
+                if req.extras:
+                    metadata["extras"] = sorted(req.extras)
+                results.append((req.name, version, metadata))
+
         return results
 
     def _parse_setup_py(self, project_root: Path) -> Iterable[RequirementSpec]:
@@ -301,27 +339,66 @@ class PythonDetector(Detector):
         return results
 
     def _parse_local_metadata(self, project_root: Path) -> Iterable[RequirementSpec]:
-        results: List[RequirementSpec] = []
-        metadata_files = list(project_root.glob("**/*.dist-info/METADATA")) + list(project_root.glob("**/PKG-INFO"))
-        for metadata_path in metadata_files:
-            metadata = Parser().parsestr(metadata_path.read_text(encoding="utf-8", errors="ignore"))
-            name = metadata.get("Name")
-            version = metadata.get("Version")
-            license_expression = metadata.get("License-Expression") or metadata.get("License")
-            if not name or not version:
-                continue
-            details: Dict[str, object] = {"source": str(metadata_path)}
-            if license_expression:
-                details["license"] = license_expression.strip()
-            classifiers = [value for key, value in metadata.items() if key == "Classifier" and "License" in value]
-            if classifiers:
-                details["classifiers"] = classifiers
-            results.append((name, version, details))
+        """
+        Parse local Python package metadata.
 
-        for archive_path in project_root.glob("**/*.whl"):
-            results.extend(self._extract_archive_metadata(archive_path))
-        for archive_path in project_root.glob("**/*.egg"):
-            results.extend(self._extract_archive_metadata(archive_path))
+        NOTE: This scans installed packages (.dist-info, .whl, .egg files).
+        For source code scans (GitHub repos), these are typically unwanted as they
+        represent installed dependencies, not declarations.
+
+        This method now skips common virtual environment and installed package
+        directories to avoid scanning installed libraries in source repos.
+        """
+        results: List[RequirementSpec] = []
+
+        # Common directories to skip (virtual envs, build artifacts, node_modules-like patterns)
+        skip_patterns = {
+            "venv", ".venv", "env", ".env",  # Virtual environments
+            "site-packages", "dist-packages",  # Installed packages
+            "__pycache__", ".tox", ".pytest_cache",  # Build/test artifacts
+            "build", "dist", ".eggs",  # Build outputs
+            "node_modules",  # JS dependencies (sometimes in mixed repos)
+        }
+
+        def should_skip_path(path: Path) -> bool:
+            """Check if path contains any skip patterns in its parents."""
+            for parent in path.parents:
+                if parent.name in skip_patterns:
+                    return True
+            return False
+
+        # Skip scanning .dist-info and PKG-INFO files (they represent installed packages)
+        # Uncomment the lines below if you need to scan installed packages
+        # (e.g., for Docker images or deployed code)
+
+        # metadata_files = list(project_root.glob("**/*.dist-info/METADATA")) + list(project_root.glob("**/PKG-INFO"))
+        # for metadata_path in metadata_files:
+        #     if should_skip_path(metadata_path):
+        #         continue
+        #     metadata = Parser().parsestr(metadata_path.read_text(encoding="utf-8", errors="ignore"))
+        #     name = metadata.get("Name")
+        #     version = metadata.get("Version")
+        #     license_expression = metadata.get("License-Expression") or metadata.get("License")
+        #     if not name or not version:
+        #         continue
+        #     details: Dict[str, object] = {"source": str(metadata_path)}
+        #     if license_expression:
+        #         details["license"] = license_expression.strip()
+        #     classifiers = [value for key, value in metadata.items() if key == "Classifier" and "License" in value]
+        #     if classifiers:
+        #         details["classifiers"] = classifiers
+        #     results.append((name, version, details))
+
+        # Skip scanning .whl and .egg files (they represent packaged/installed code)
+        # for archive_path in project_root.glob("**/*.whl"):
+        #     if should_skip_path(archive_path):
+        #         continue
+        #     results.extend(self._extract_archive_metadata(archive_path))
+        # for archive_path in project_root.glob("**/*.egg"):
+        #     if should_skip_path(archive_path):
+        #         continue
+        #     results.extend(self._extract_archive_metadata(archive_path))
+
         return results
 
     # -------------------------

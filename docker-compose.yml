@@ -1,19 +1,22 @@
 version: "3.9"
 
 services:
-  lcc:
+  api:
     build: .
     image: lcc:dev
-    entrypoint: []
-    command: ["sleep", "infinity"]
+    command: ["server", "--host", "0.0.0.0", "--port", "8000"]
     working_dir: /workspace
-    user: "1000:1000"
     environment:
+      HOME: /workspace
       LCC_CACHE_DIR: /var/cache/lcc
+      LCC_DB_PATH: /workspace/.lcc/lcc.db
+      LCC_POLICY_DIR: /workspace/.lcc/policies
       LCC_LOG_LEVEL: INFO
+    ports:
+      - "8000:8000"
     volumes:
       - .:/workspace:rw
-      - lcc-cache:/var/cache/lcc
+      - lcc-cache:/var/cache/lcc:rw
     healthcheck:
       test: ["CMD", "lcc", "--version"]
       interval: 1m

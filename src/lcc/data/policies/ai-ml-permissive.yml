@@ -1,0 +1,144 @@
+---
+name: ai-ml-permissive
+description: Permissive policy for AI/ML projects allowing most open models and datasets
+version: "1.0.0"
+contexts:
+  research:
+    allowed:
+      # Traditional permissive licenses
+      - MIT
+      - Apache-2.0
+      - BSD-2-Clause
+      - BSD-3-Clause
+      - ISC
+
+      # AI Model licenses - permissive
+      - openrail
+      - openrail-m
+      - openrail++
+      - apache-2.0-ai
+      - mit-ai
+      - mistral-ai
+
+      # Dataset licenses - permissive and public domain
+      - cc0-1.0
+      - cc-by-4.0
+      - cc-by-3.0
+      - odc-by-1.0
+      - cdla-permissive-1.0
+      - pddl-1.0
+      - coco
+      - openimages
+
+    review:
+      # AI licenses with use restrictions
+      - bigscience-bloom-rail-1.0
+      - bigscience-openrail-m
+      - creativeml-openrail-m
+
+      # Meta Llama (review for user threshold)
+      - llama-2
+      - llama-3
+      - llama-3.1
+
+      # Google Gemma
+      - deepmind-gemma
+
+      # ShareAlike datasets (may require derivatives to use same license)
+      - cc-by-sa-4.0
+      - cc-by-sa-3.0
+      - odbl-1.0
+      - cdla-sharing-1.0
+
+    denied:
+      # Non-commercial licenses
+      - cc-by-nc-4.0
+      - cc-by-nc-sa-4.0
+      - cc-by-nc-nd-4.0
+      - cc-by-nd-4.0
+
+      # Proprietary API-only
+      - openai-gpt
+      - anthropic-claude
+      - cohere
+      - ai21-jurassic
+
+      # Research-only datasets
+      - imagenet
+      - kaggle-competition
+
+      # Strong copyleft
+      - GPL-3.0
+      - AGPL-3.0
+
+  commercial:
+    allowed:
+      # Traditional permissive
+      - MIT
+      - Apache-2.0
+      - BSD-2-Clause
+      - BSD-3-Clause
+      - ISC
+
+      # AI - permissive
+      - apache-2.0-ai
+      - mit-ai
+      - mistral-ai
+
+      # Datasets - permissive
+      - cc0-1.0
+      - cc-by-4.0
+      - odc-by-1.0
+      - cdla-permissive-1.0
+      - coco
+      - openimages
+
+    review:
+      # AI licenses with restrictions - need legal review
+      - openrail
+      - openrail-m
+      - openrail++
+      - bigscience-bloom-rail-1.0
+      - bigscience-openrail-m
+      - creativeml-openrail-m
+
+      # Meta Llama - check user threshold
+      - llama-2
+      - llama-3
+      - llama-3.1
+
+      # Google Gemma
+      - deepmind-gemma
+
+      # ShareAlike - may require derivatives to share
+      - cc-by-sa-4.0
+      - odbl-1.0
+      - cdla-sharing-1.0
+
+    denied:
+      # Non-commercial
+      - cc-by-nc-4.0
+      - cc-by-nc-sa-4.0
+      - cc-by-nc-nd-4.0
+      - cc-by-nd-4.0
+
+      # Proprietary
+      - openai-gpt
+      - anthropic-claude
+
+      # Research-only
+      - imagenet
+      - kaggle-competition
+
+      # Copyleft
+      - GPL-3.0
+      - AGPL-3.0
+      - LGPL-3.0
+
+disclaimer: |
+  This policy provides guidance for AI/ML compliance. Always consult legal counsel for:
+  - Use-based restrictions in RAIL licenses
+  - User threshold requirements (e.g., Llama 2's 700M MAU limit)
+  - Acceptable use policies
+  - Commercial deployment terms
+  - Model retraining and fine-tuning restrictions

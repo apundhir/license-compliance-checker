@@ -45,6 +45,9 @@ class FallbackResolver:
                     if assumption not in assumptions:
                         assumptions.append(assumption)
                     finding.component.metadata.setdefault("assumed_version", assumed)
+                    # Actually update the component version with the assumed version
+                    finding.component.version = assumed
+                    finding.component.metadata["version_source"] = "assumed_from_" + evidence.source
         if resolution_path:
             finding.component.metadata.setdefault("resolution_path", resolution_path)
         if finding.evidences:

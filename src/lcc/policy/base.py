@@ -10,6 +10,8 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
+from importlib import resources as importlib_resources
+
 try:
     import yaml
 except ModuleNotFoundError:  # pragma: no cover
@@ -68,16 +70,42 @@ class PolicyManager:
         base_dir = Path(os.getenv("LCC_POLICY_DIR", Path.home() / ".lcc" / "policies"))
         base_dir.mkdir(parents=True, exist_ok=True)
         self.policy_dir = base_dir
-        templates_dir = Path(__file__).resolve().parent.parent.parent / "policies"
-        if templates_dir.exists():
-            for pattern in ("*.yml", "*.yaml"):
-                for template in templates_dir.glob(pattern):
-                    destination = self.policy_dir / template.name
-                    if not destination.exists():
-                        shutil.copy(template, destination)
+        self._seed_templates()
         template_output = getattr(config, "template_dir", None)
         if template_output:
             template_output.mkdir(parents=True, exist_ok=True)
+
+    def _seed_templates(self) -> None:
+        """Populate the policy directory with bundled templates."""
+
+        def _copy_payload(name: str, payload: str) -> None:
+            destination = self.policy_dir / name
+            if not destination.exists():
+                destination.write_text(payload, encoding="utf-8")
+
+        # Bundled resources inside the package
+        try:
+            package_root = importlib_resources.files("lcc.data.policies")
+            for resource in package_root.iterdir():
+                if resource.is_file() and resource.suffix in {".yml", ".yaml"}:
+                    _copy_payload(resource.name, resource.read_text(encoding="utf-8"))
+        except (ModuleNotFoundError, FileNotFoundError):  # pragma: no cover - defensive
+            pass
+
+        # Repository-mounted fallbacks to support editable installs
+        fallback_dirs = [
+            Path(__file__).resolve().parent.parent.parent / "policies",
+            Path(__file__).resolve().parent.parent.parent.parent / "policies",
+            Path(__file__).resolve().parent.parent.parent.parent / "policy" / "templates",
+        ]
+        for directory in fallback_dirs:
+            if not directory.exists():
+                continue
+            for pattern in ("*.yml", "*.yaml"):
+                for template in directory.glob(pattern):
+                    destination = self.policy_dir / template.name
+                    if not destination.exists():
+                        shutil.copy(template, destination)
 
     def list_policies(self) -> List[str]:
         return sorted({policy_path.stem for policy_path in self._iter_policy_files()})
