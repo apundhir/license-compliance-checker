@@ -5,6 +5,7 @@ __pycache__/
 .env
 .venv
 .lcc/
+.conda-lcc/
 dashboard/node_modules/
 dashboard/.next/
 
