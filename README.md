@@ -1,7 +1,7 @@
 # License Compliance Checker (LCC)
 
-[![License](https://img.shields.io/github/license/apundhir/license-compliance-checker)](https://github.com/apundhir/license-compliance-checker/blob/main/LICENSE)
-[![Python Version](https://img.shields.io/pypi/pyversions/license-compliance-checker)](https://pypi.org/project/license-compliance-checker/)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](pyproject.toml)
 [![Code Style: Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
