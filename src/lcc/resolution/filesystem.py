@@ -59,7 +59,7 @@ class FileSystemResolver(Resolver):
 
     def _resolve_root(self, component: Component) -> Optional[Path]:
         if component.path:
-            return component.path.parent
+            return Path(component.path).parent
         # Do not fallback to project_root for components without a path (e.g. dependencies).
         # This prevents scanning the entire repo for external packages.
         return None
