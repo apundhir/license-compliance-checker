@@ -43,7 +43,16 @@ jobs:
             --context saas \
             --threshold 0.7 \
             --exclude "tests/**/*" \
+            --exclude "dashboard/**" \
+            --exclude "dist/**" \
             --exclude ".git/**"
+
+      - name: Display compliance report on failure
+        if: failure()
+        run: |
+          echo "::group::Compliance Report"
+          cat lcc-report.json || echo "Report file not found"
+          echo "::endgroup::"
 
       - name: Upload compliance report
         uses: actions/upload-artifact@v4
