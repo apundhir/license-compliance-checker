@@ -34,6 +34,8 @@ class Scanner:
         start = time.time()
         findings: List[ComponentFinding] = []
         for index, detector in enumerate(self.detectors, start=1):
+            # Pass config to detector for exclusion pattern checking
+            detector.set_config(self.config)
             if not detector.supports(project_root):
                 continue
             for component in detector.discover(project_root):

@@ -101,30 +101,35 @@ class PythonDetector(Detector):
 
         # setup.py
         for path in find_files("setup.py"):
+            if self._is_excluded(path, project_root): continue
             for requirement in self._parse_setup_py_file(path, project_root):
                 name, version, metadata = requirement
                 register(name, version, str(path.relative_to(project_root)), metadata)
 
         # pyproject.toml
         for path in find_files("pyproject.toml"):
+            if self._is_excluded(path, project_root): continue
             for requirement in self._parse_pyproject_file(path, project_root):
                  name, version, metadata = requirement
                  register(name, version, metadata.pop("source", str(path.relative_to(project_root))), metadata)
 
         # Pipfile
         for path in find_files("Pipfile"):
-             for requirement in self._parse_pipfile_file(path, project_root):
+            if self._is_excluded(path, project_root): continue
+            for requirement in self._parse_pipfile_file(path, project_root):
                 name, version, metadata = requirement
                 register(name, version, str(path.relative_to(project_root)), metadata)
 
         # poetry.lock
         for path in find_files("poetry.lock"):
+            if self._is_excluded(path, project_root): continue
             for requirement in self._parse_poetry_lock_file(path, project_root):
                 name, version, metadata = requirement
                 register(name, version, str(path.relative_to(project_root)), metadata)
 
         # environment.yml
         for path in find_files("environment.yml"):
+            if self._is_excluded(path, project_root): continue
             for requirement in self._parse_environment_yml_file(path, project_root):
                 name, version, metadata = requirement
                 register(name, version, str(path.relative_to(project_root)), metadata)
@@ -161,7 +166,10 @@ class PythonDetector(Detector):
             # Skip if in ignored directory
             if any(part in skip_dirs for part in path.parts):
                 continue
-                
+            # Skip if in config-excluded directory
+            if self._is_excluded(path, project_root):
+                continue
+
             try:
                 content = path.read_text(encoding="utf-8")
             except (OSError, UnicodeDecodeError):
@@ -336,6 +344,8 @@ class PythonDetector(Detector):
         results: List[RequirementSpec] = []
         in_dependencies = False
         in_pip = False
+        # Skip conda meta-packages that aren't real PyPI packages
+        conda_skip = {"python", "pip", "conda", "setuptools", "wheel"}
         for raw_line in content.splitlines():
             line = raw_line.rstrip()
             stripped = line.strip()
@@ -358,6 +368,9 @@ class PythonDetector(Detector):
                 else:
                     in_pip = False
                     name, version = self._split_environment_dependency(value)
+                    # Skip conda meta-packages
+                    if name.lower() in conda_skip:
+                        continue
                     results.append((name, version, {"channel": "conda"}))
             elif indent <= 2:
                 in_pip = False

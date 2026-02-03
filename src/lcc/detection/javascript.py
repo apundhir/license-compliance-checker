@@ -80,6 +80,8 @@ class JavaScriptDetector(Detector):
         for path in find_files("package.json"):
             if any(part in skip_dirs for part in path.parts):
                  continue
+            if self._is_excluded(path, project_root):
+                 continue
             try:
                 data = json.loads(path.read_text(encoding="utf-8"))
             except (OSError, json.JSONDecodeError):
@@ -90,16 +92,19 @@ class JavaScriptDetector(Detector):
 
         for path in find_files("package-lock.json"):
             if any(part in skip_dirs for part in path.parts): continue
+            if self._is_excluded(path, project_root): continue
             for spec in self._parse_package_lock_file(path, project_root):
                 register(*spec)
 
         for path in find_files("yarn.lock"):
             if any(part in skip_dirs for part in path.parts): continue
+            if self._is_excluded(path, project_root): continue
             for spec in self._parse_yarn_lock_file(path, project_root):
                 register(*spec)
 
         for path in find_files("pnpm-lock.yaml"):
             if any(part in skip_dirs for part in path.parts): continue
+            if self._is_excluded(path, project_root): continue
             for spec in self._parse_pnpm_lock_file(path, project_root):
                  register(*spec)
 

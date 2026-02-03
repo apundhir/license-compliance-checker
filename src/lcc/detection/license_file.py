@@ -60,14 +60,36 @@ class LicenseFileDetector(Detector):
         return components
 
     def _is_license_file(self, path: Path) -> bool:
+        """
+        Check if a file is likely a license file based on naming conventions.
+        Matches common patterns: LICENSE, LICENSE.txt, LICENSE.md, LICENSE-MIT,
+        COPYING, NOTICE, etc. but NOT source code files like licenses.py.
+        """
         name = path.name.upper()
-        return (
-            "LICENSE" in name 
-            or "COPYING" in name 
-            or "NOTICE" in name 
-            or path.suffix.lower() in [".txt", ".md"] and "LICENSE" in name
-            or name == "TEST_LICENSE.TXT" # Explicitly support our test file
-        )
+        stem = path.stem.upper()
+        suffix = path.suffix.lower()
+
+        # Skip source code files (even if they have "license" in name)
+        if suffix in {".py", ".pyc", ".pyo", ".js", ".ts", ".jsx", ".tsx", ".go",
+                      ".rs", ".java", ".c", ".cpp", ".h", ".hpp", ".rb", ".cs",
+                      ".rego", ".json", ".yaml", ".yml", ".toml", ".xml"}:
+            return False
+
+        # Common license file names (exact match on stem or full name)
+        license_names = {
+            "LICENSE", "LICENCE", "COPYING", "NOTICE", "UNLICENSE",
+            "LICENSE-MIT", "LICENSE-APACHE", "LICENSE-BSD", "MIT-LICENSE",
+            "APACHE-LICENSE", "BSD-LICENSE", "TEST_LICENSE"
+        }
+
+        if stem in license_names or name in license_names:
+            return True
+
+        # LICENSE.txt, LICENSE.md, COPYING.txt, etc.
+        if suffix in {".txt", ".md", ""} and stem in license_names:
+            return True
+
+        return False
 
     def _create_component(self, path: Path, root: Path) -> Component:
         try:
