@@ -45,6 +45,8 @@ jobs:
             --exclude "tests/**/*" \
             --exclude "dashboard/**" \
             --exclude "dist/**" \
+            --exclude "package/dist/**" \
+            --exclude "package/lib/**" \
             --exclude ".git/**"
 
       - name: Display compliance report on failure
