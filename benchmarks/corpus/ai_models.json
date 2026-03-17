@@ -1,0 +1,198 @@
+{
+  "version": "1.0.0",
+  "description": "LCC AI model benchmark corpus — 20 HuggingFace models with verified ground-truth licenses",
+  "updated": "2026-03-17",
+  "models": [
+    {
+      "name": "meta-llama/Llama-3.1-8B",
+      "known_license": "llama3.1",
+      "license_type": "restricted",
+      "model_type": "LlamaForCausalLM",
+      "framework": "pytorch",
+      "rail_restrictions": [
+        "No use for training competing models",
+        "Monthly active user limit of 700M"
+      ]
+    },
+    {
+      "name": "mistralai/Mistral-7B-v0.3",
+      "known_license": "Apache-2.0",
+      "license_type": "open",
+      "model_type": "MistralForCausalLM",
+      "framework": "pytorch",
+      "rail_restrictions": null
+    },
+    {
+      "name": "google/gemma-2b",
+      "known_license": "gemma",
+      "license_type": "restricted",
+      "model_type": "GemmaForCausalLM",
+      "framework": "pytorch",
+      "rail_restrictions": [
+        "Prohibited uses for harmful content generation",
+        "Must comply with Google Terms of Service"
+      ]
+    },
+    {
+      "name": "microsoft/phi-2",
+      "known_license": "MIT",
+      "license_type": "open",
+      "model_type": "PhiForCausalLM",
+      "framework": "pytorch",
+      "rail_restrictions": null
+    },
+    {
+      "name": "stabilityai/stable-diffusion-xl-base-1.0",
+      "known_license": "openrail++",
+      "license_type": "RAIL",
+      "model_type": "StableDiffusionXLPipeline",
+      "framework": "pytorch",
+      "rail_restrictions": [
+        "No generation of CSAM",
+        "No defamatory content",
+        "No discrimination-promoting content"
+      ]
+    },
+    {
+      "name": "openai/whisper-large-v3",
+      "known_license": "Apache-2.0",
+      "license_type": "open",
+      "model_type": "WhisperForConditionalGeneration",
+      "framework": "pytorch",
+      "rail_restrictions": null
+    },
+    {
+      "name": "bigscience/bloom-560m",
+      "known_license": "bigscience-bloom-rail-1.0",
+      "license_type": "RAIL",
+      "model_type": "BloomForCausalLM",
+      "framework": "pytorch",
+      "rail_restrictions": [
+        "No military use",
+        "No surveillance use",
+        "No use to generate deceptive content"
+      ]
+    },
+    {
+      "name": "EleutherAI/gpt-neox-20b",
+      "known_license": "Apache-2.0",
+      "license_type": "open",
+      "model_type": "GPTNeoXForCausalLM",
+      "framework": "pytorch",
+      "rail_restrictions": null
+    },
+    {
+      "name": "tiiuae/falcon-7b",
+      "known_license": "Apache-2.0",
+      "license_type": "open",
+      "model_type": "FalconForCausalLM",
+      "framework": "pytorch",
+      "rail_restrictions": null
+    },
+    {
+      "name": "Qwen/Qwen2.5-7B",
+      "known_license": "Apache-2.0",
+      "license_type": "open",
+      "model_type": "Qwen2ForCausalLM",
+      "framework": "pytorch",
+      "rail_restrictions": null
+    },
+    {
+      "name": "01-ai/Yi-6B",
+      "known_license": "Apache-2.0",
+      "license_type": "open",
+      "model_type": "YiForCausalLM",
+      "framework": "pytorch",
+      "rail_restrictions": null
+    },
+    {
+      "name": "deepseek-ai/deepseek-coder-6.7b-base",
+      "known_license": "deepseek",
+      "license_type": "restricted",
+      "model_type": "DeepseekForCausalLM",
+      "framework": "pytorch",
+      "rail_restrictions": [
+        "No use for illegal purposes",
+        "Attribution required"
+      ]
+    },
+    {
+      "name": "sentence-transformers/all-MiniLM-L6-v2",
+      "known_license": "Apache-2.0",
+      "license_type": "open",
+      "model_type": "SentenceTransformer",
+      "framework": "pytorch",
+      "rail_restrictions": null
+    },
+    {
+      "name": "CompVis/stable-diffusion-v1-4",
+      "known_license": "openrail",
+      "license_type": "RAIL",
+      "model_type": "StableDiffusionPipeline",
+      "framework": "pytorch",
+      "rail_restrictions": [
+        "No generation of CSAM",
+        "No defamatory content",
+        "No medical advice generation"
+      ]
+    },
+    {
+      "name": "facebook/opt-1.3b",
+      "known_license": "other",
+      "license_type": "restricted",
+      "model_type": "OPTForCausalLM",
+      "framework": "pytorch",
+      "rail_restrictions": [
+        "Research use only",
+        "Non-commercial"
+      ]
+    },
+    {
+      "name": "THUDM/chatglm3-6b",
+      "known_license": "glm-4",
+      "license_type": "restricted",
+      "model_type": "ChatGLMModel",
+      "framework": "pytorch",
+      "rail_restrictions": [
+        "Commercial use requires license agreement",
+        "No use for illegal activities"
+      ]
+    },
+    {
+      "name": "allenai/OLMo-7B",
+      "known_license": "Apache-2.0",
+      "license_type": "open",
+      "model_type": "OLMoForCausalLM",
+      "framework": "pytorch",
+      "rail_restrictions": null
+    },
+    {
+      "name": "HuggingFaceH4/zephyr-7b-beta",
+      "known_license": "MIT",
+      "license_type": "open",
+      "model_type": "MistralForCausalLM",
+      "framework": "pytorch",
+      "rail_restrictions": null
+    },
+    {
+      "name": "databricks/dolly-v2-3b",
+      "known_license": "MIT",
+      "license_type": "open",
+      "model_type": "GPTNeoXForCausalLM",
+      "framework": "pytorch",
+      "rail_restrictions": null
+    },
+    {
+      "name": "runwayml/stable-diffusion-v1-5",
+      "known_license": "openrail",
+      "license_type": "RAIL",
+      "model_type": "StableDiffusionPipeline",
+      "framework": "pytorch",
+      "rail_restrictions": [
+        "No generation of CSAM",
+        "No defamatory content",
+        "Must include model card"
+      ]
+    }
+  ]
+}

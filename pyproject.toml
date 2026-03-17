@@ -12,18 +12,38 @@ authors = [
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "Apache-2.0" }
+keywords = [
+  "license",
+  "compliance",
+  "open-source",
+  "sbom",
+  "spdx",
+  "cyclonedx",
+  "software-composition-analysis",
+]
 classifiers = [
-  "Development Status :: 4 - Beta",
+  "Development Status :: 5 - Production/Stable",
   "Intended Audience :: Developers",
+  "Intended Audience :: System Administrators",
   "License :: OSI Approved :: Apache Software License",
+  "Operating System :: OS Independent",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
+  "Topic :: Security",
   "Topic :: Software Development :: Quality Assurance",
-  "Topic :: Software Development :: Libraries",
+  "Topic :: Software Development :: Build Tools",
   "Typing :: Typed",
 ]
+
+[project.urls]
+Homepage = "https://github.com/apundhir/license-compliance-checker"
+Repository = "https://github.com/apundhir/license-compliance-checker"
+Documentation = "https://github.com/apundhir/license-compliance-checker#readme"
+"Bug Tracker" = "https://github.com/apundhir/license-compliance-checker/issues"
+Changelog = "https://github.com/apundhir/license-compliance-checker/releases"
+
 dependencies = [
   "rich>=13.7.0",
   "requests>=2.31.0",

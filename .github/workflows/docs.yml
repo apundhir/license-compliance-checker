@@ -1,0 +1,38 @@
+name: Deploy Documentation
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'docs/**'
+      - 'mkdocs.yml'
+      - 'CONTRIBUTING.md'
+      - 'CHANGELOG.md'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r docs/requirements.txt
+
+      - name: Sync root docs into docs/ directory
+        run: |
+          cp CONTRIBUTING.md docs/CONTRIBUTING.md
+          cp CHANGELOG.md docs/CHANGELOG.md
+
+      - name: Build and deploy
+        run: mkdocs gh-deploy --force

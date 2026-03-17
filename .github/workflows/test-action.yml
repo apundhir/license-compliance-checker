@@ -1,14 +1,219 @@
 name: Test Action
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/actions/license-compliance/**'
+      - '.github/workflows/test-action.yml'
 
 jobs:
-  build:
+  # Test 1: Basic scan with default inputs
+  basic-scan:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: ./.github/actions/license-compliance
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Build dashboard
+        working-directory: ./dashboard
+        run: |
+          npm ci
+          npm run build
+
+      - name: Run basic scan
+        id: scan
+        uses: ./.github/actions/license-compliance
         with:
           path: .
           format: json
           output: lcc-report.json
+          exclude: 'tests/**,dashboard/**,dist/**,package/dist/**,package/lib/**,.git/**'
+
+      - name: Verify outputs exist
+        run: |
+          echo "Report path: ${{ steps.scan.outputs.report }}"
+          echo "Status: ${{ steps.scan.outputs.status }}"
+          echo "Violations: ${{ steps.scan.outputs.violation-count }}"
+          echo "Warnings: ${{ steps.scan.outputs.warning-count }}"
+
+          # Verify report file was created
+          test -f "${{ steps.scan.outputs.report }}" || { echo "Report file not found"; exit 1; }
+
+          # Verify status is one of the expected values
+          STATUS="${{ steps.scan.outputs.status }}"
+          if [[ "$STATUS" != "pass" && "$STATUS" != "warning" && "$STATUS" != "violation" ]]; then
+            echo "Unexpected status: $STATUS"
+            exit 1
+          fi
+
+          # Verify counts are numeric
+          VIOLATIONS="${{ steps.scan.outputs.violation-count }}"
+          WARNINGS="${{ steps.scan.outputs.warning-count }}"
+          [[ "$VIOLATIONS" =~ ^[0-9]+$ ]] || { echo "violation-count is not numeric: $VIOLATIONS"; exit 1; }
+          [[ "$WARNINGS" =~ ^[0-9]+$ ]] || { echo "warning-count is not numeric: $WARNINGS"; exit 1; }
+
+  # Test 2: Scan with fail-on=none (should never fail)
+  fail-on-none:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Build dashboard
+        working-directory: ./dashboard
+        run: |
+          npm ci
+          npm run build
+
+      - name: Run scan with fail-on=none
+        id: scan
+        uses: ./.github/actions/license-compliance
+        with:
+          path: .
+          format: json
+          output: lcc-report-no-fail.json
+          fail-on: none
+          exclude: 'tests/**,dashboard/**,dist/**,package/dist/**,package/lib/**,.git/**'
+
+      - name: Verify scan completed without failure
+        run: |
+          echo "Scan completed successfully with fail-on=none"
+          echo "Status: ${{ steps.scan.outputs.status }}"
+
+  # Test 3: Scan specific ecosystem (python only)
+  ecosystem-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run Python-only scan
+        id: scan
+        uses: ./.github/actions/license-compliance
+        with:
+          path: .
+          format: json
+          output: lcc-report-python.json
+          ecosystems: python
+          fail-on: none
+
+      - name: Verify Python ecosystem scan
+        run: |
+          echo "Report: ${{ steps.scan.outputs.report }}"
+          echo "Status: ${{ steps.scan.outputs.status }}"
+          test -f "${{ steps.scan.outputs.report }}" || { echo "Report file not found"; exit 1; }
+
+  # Test 4: Scan with SBOM generation
+  sbom-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Build dashboard
+        working-directory: ./dashboard
+        run: |
+          npm ci
+          npm run build
+
+      - name: Run scan with SBOM generation
+        id: scan
+        uses: ./.github/actions/license-compliance
+        with:
+          path: .
+          format: json
+          output: lcc-report-sbom.json
+          sbom-format: cyclonedx
+          fail-on: none
+          exclude: 'tests/**,dashboard/**,dist/**,package/dist/**,package/lib/**,.git/**'
+
+      - name: Verify SBOM was generated
+        run: |
+          SBOM_PATH="${{ steps.scan.outputs.sbom-path }}"
+          echo "SBOM path: $SBOM_PATH"
+          if [ -z "$SBOM_PATH" ]; then
+            echo "SBOM path output is empty"
+            exit 1
+          fi
+          test -f "$SBOM_PATH" || { echo "SBOM file not found at $SBOM_PATH"; exit 1; }
+          echo "SBOM file contents (first 20 lines):"
+          head -20 "$SBOM_PATH"
+
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-sbom
+          path: ${{ steps.scan.outputs.sbom-path }}
+
+  # Test 5: Scan with exclude patterns
+  exclude-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run scan with exclusions
+        id: scan
+        uses: ./.github/actions/license-compliance
+        with:
+          path: .
+          format: json
+          output: lcc-report-exclude.json
+          exclude: 'tests/**,docs/**,dashboard/**,dist/**,package/**,.git/**'
+          fail-on: none
+
+      - name: Verify exclusion scan completed
+        run: |
+          test -f "${{ steps.scan.outputs.report }}" || { echo "Report file not found"; exit 1; }
+          echo "Scan with exclusions completed: status=${{ steps.scan.outputs.status }}"
+
+  # Test 6: Scan with custom threshold and policy
+  policy-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Build dashboard
+        working-directory: ./dashboard
+        run: |
+          npm ci
+          npm run build
+
+      - name: Run scan with policy
+        id: scan
+        uses: ./.github/actions/license-compliance
+        with:
+          path: .
+          format: json
+          output: lcc-report-policy.json
+          policy: permissive
+          threshold: '0.7'
+          fail-on: none
+          exclude: 'tests/**,dashboard/**,dist/**,package/dist/**,package/lib/**,.git/**'
+
+      - name: Verify policy scan
+        run: |
+          echo "Status: ${{ steps.scan.outputs.status }}"
+          echo "Violations: ${{ steps.scan.outputs.violation-count }}"
+          echo "Warnings: ${{ steps.scan.outputs.warning-count }}"
+          test -f "${{ steps.scan.outputs.report }}" || { echo "Report file not found"; exit 1; }
+          # Verify the report contains policy context
+          python3 -c "
+          import json
+          report = json.load(open('lcc-report-policy.json'))
+          ctx = report.get('summary', {}).get('context', {})
+          print('Context keys:', list(ctx.keys()))
+          "

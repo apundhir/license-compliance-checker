@@ -1,0 +1,726 @@
+{
+  "version": "1.0.0",
+  "description": "LCC benchmark corpus — 50 open source projects with verified ground-truth licenses",
+  "updated": "2026-03-17",
+  "projects": [
+    {
+      "name": "flask",
+      "ecosystem": "python",
+      "github_url": "https://github.com/pallets/flask",
+      "manifest_file": "requirements.txt",
+      "known_license": "BSD-3-Clause",
+      "expected_component_count": {"min": 1, "max": 5},
+      "dependencies": [
+        {"name": "flask", "version": "3.1.0", "license": "BSD-3-Clause"},
+        {"name": "jinja2", "version": "3.1.4", "license": "BSD-3-Clause"},
+        {"name": "werkzeug", "version": "3.1.3", "license": "BSD-3-Clause"},
+        {"name": "click", "version": "8.1.7", "license": "BSD-3-Clause"},
+        {"name": "itsdangerous", "version": "2.2.0", "license": "BSD-3-Clause"}
+      ]
+    },
+    {
+      "name": "django",
+      "ecosystem": "python",
+      "github_url": "https://github.com/django/django",
+      "manifest_file": "requirements.txt",
+      "known_license": "BSD-3-Clause",
+      "expected_component_count": {"min": 1, "max": 4},
+      "dependencies": [
+        {"name": "django", "version": "5.1.4", "license": "BSD-3-Clause"},
+        {"name": "asgiref", "version": "3.8.1", "license": "BSD-3-Clause"},
+        {"name": "sqlparse", "version": "0.5.3", "license": "BSD-3-Clause"}
+      ]
+    },
+    {
+      "name": "requests",
+      "ecosystem": "python",
+      "github_url": "https://github.com/psf/requests",
+      "manifest_file": "requirements.txt",
+      "known_license": "Apache-2.0",
+      "expected_component_count": {"min": 1, "max": 6},
+      "dependencies": [
+        {"name": "requests", "version": "2.32.3", "license": "Apache-2.0"},
+        {"name": "urllib3", "version": "2.3.0", "license": "MIT"},
+        {"name": "charset-normalizer", "version": "3.4.1", "license": "MIT"},
+        {"name": "idna", "version": "3.10", "license": "BSD-3-Clause"},
+        {"name": "certifi", "version": "2024.12.14", "license": "MPL-2.0"}
+      ]
+    },
+    {
+      "name": "fastapi",
+      "ecosystem": "python",
+      "github_url": "https://github.com/tiangolo/fastapi",
+      "manifest_file": "requirements.txt",
+      "known_license": "MIT",
+      "expected_component_count": {"min": 1, "max": 5},
+      "dependencies": [
+        {"name": "fastapi", "version": "0.115.6", "license": "MIT"},
+        {"name": "starlette", "version": "0.41.3", "license": "BSD-3-Clause"},
+        {"name": "pydantic", "version": "2.10.4", "license": "MIT"},
+        {"name": "uvicorn", "version": "0.34.0", "license": "BSD-3-Clause"}
+      ]
+    },
+    {
+      "name": "numpy",
+      "ecosystem": "python",
+      "github_url": "https://github.com/numpy/numpy",
+      "manifest_file": "requirements.txt",
+      "known_license": "BSD-3-Clause",
+      "expected_component_count": {"min": 1, "max": 2},
+      "dependencies": [
+        {"name": "numpy", "version": "2.2.1", "license": "BSD-3-Clause"}
+      ]
+    },
+    {
+      "name": "pandas",
+      "ecosystem": "python",
+      "github_url": "https://github.com/pandas-dev/pandas",
+      "manifest_file": "requirements.txt",
+      "known_license": "BSD-3-Clause",
+      "expected_component_count": {"min": 1, "max": 4},
+      "dependencies": [
+        {"name": "pandas", "version": "2.2.3", "license": "BSD-3-Clause"},
+        {"name": "numpy", "version": "2.2.1", "license": "BSD-3-Clause"},
+        {"name": "python-dateutil", "version": "2.9.0", "license": "Apache-2.0"},
+        {"name": "pytz", "version": "2024.2", "license": "MIT"}
+      ]
+    },
+    {
+      "name": "scikit-learn",
+      "ecosystem": "python",
+      "github_url": "https://github.com/scikit-learn/scikit-learn",
+      "manifest_file": "requirements.txt",
+      "known_license": "BSD-3-Clause",
+      "expected_component_count": {"min": 1, "max": 5},
+      "dependencies": [
+        {"name": "scikit-learn", "version": "1.6.0", "license": "BSD-3-Clause"},
+        {"name": "numpy", "version": "2.2.1", "license": "BSD-3-Clause"},
+        {"name": "scipy", "version": "1.15.0", "license": "BSD-3-Clause"},
+        {"name": "joblib", "version": "1.4.2", "license": "BSD-3-Clause"},
+        {"name": "threadpoolctl", "version": "3.5.0", "license": "BSD-3-Clause"}
+      ]
+    },
+    {
+      "name": "pytorch",
+      "ecosystem": "python",
+      "github_url": "https://github.com/pytorch/pytorch",
+      "manifest_file": "requirements.txt",
+      "known_license": "BSD-3-Clause",
+      "expected_component_count": {"min": 1, "max": 4},
+      "dependencies": [
+        {"name": "torch", "version": "2.5.1", "license": "BSD-3-Clause"},
+        {"name": "filelock", "version": "3.16.1", "license": "Unlicense"},
+        {"name": "typing-extensions", "version": "4.12.2", "license": "PSF-2.0"},
+        {"name": "sympy", "version": "1.13.3", "license": "BSD-3-Clause"}
+      ]
+    },
+    {
+      "name": "celery",
+      "ecosystem": "python",
+      "github_url": "https://github.com/celery/celery",
+      "manifest_file": "requirements.txt",
+      "known_license": "BSD-3-Clause",
+      "expected_component_count": {"min": 1, "max": 5},
+      "dependencies": [
+        {"name": "celery", "version": "5.4.0", "license": "BSD-3-Clause"},
+        {"name": "billiard", "version": "4.2.1", "license": "BSD-3-Clause"},
+        {"name": "kombu", "version": "5.4.2", "license": "BSD-3-Clause"},
+        {"name": "vine", "version": "5.1.0", "license": "BSD-3-Clause"},
+        {"name": "click-didyoumean", "version": "0.3.1", "license": "MIT"}
+      ]
+    },
+    {
+      "name": "sqlalchemy",
+      "ecosystem": "python",
+      "github_url": "https://github.com/sqlalchemy/sqlalchemy",
+      "manifest_file": "requirements.txt",
+      "known_license": "MIT",
+      "expected_component_count": {"min": 1, "max": 3},
+      "dependencies": [
+        {"name": "sqlalchemy", "version": "2.0.36", "license": "MIT"},
+        {"name": "greenlet", "version": "3.1.1", "license": "MIT"},
+        {"name": "typing-extensions", "version": "4.12.2", "license": "PSF-2.0"}
+      ]
+    },
+    {
+      "name": "express",
+      "ecosystem": "javascript",
+      "github_url": "https://github.com/expressjs/express",
+      "manifest_file": "package.json",
+      "known_license": "MIT",
+      "expected_component_count": {"min": 1, "max": 12},
+      "dependencies": [
+        {"name": "express", "version": "4.21.1", "license": "MIT"},
+        {"name": "body-parser", "version": "1.20.3", "license": "MIT"},
+        {"name": "cookie", "version": "0.7.2", "license": "MIT"},
+        {"name": "debug", "version": "2.6.9", "license": "MIT"},
+        {"name": "depd", "version": "2.0.0", "license": "MIT"},
+        {"name": "merge-descriptors", "version": "1.0.3", "license": "MIT"},
+        {"name": "methods", "version": "1.1.2", "license": "MIT"},
+        {"name": "path-to-regexp", "version": "0.1.10", "license": "MIT"},
+        {"name": "qs", "version": "6.13.0", "license": "BSD-3-Clause"},
+        {"name": "send", "version": "0.19.0", "license": "MIT"}
+      ]
+    },
+    {
+      "name": "react",
+      "ecosystem": "javascript",
+      "github_url": "https://github.com/facebook/react",
+      "manifest_file": "package.json",
+      "known_license": "MIT",
+      "expected_component_count": {"min": 1, "max": 5},
+      "dependencies": [
+        {"name": "react", "version": "19.0.0", "license": "MIT"},
+        {"name": "react-dom", "version": "19.0.0", "license": "MIT"},
+        {"name": "scheduler", "version": "0.25.0", "license": "MIT"}
+      ]
+    },
+    {
+      "name": "next",
+      "ecosystem": "javascript",
+      "github_url": "https://github.com/vercel/next.js",
+      "manifest_file": "package.json",
+      "known_license": "MIT",
+      "expected_component_count": {"min": 1, "max": 8},
+      "dependencies": [
+        {"name": "next", "version": "15.1.3", "license": "MIT"},
+        {"name": "react", "version": "19.0.0", "license": "MIT"},
+        {"name": "react-dom", "version": "19.0.0", "license": "MIT"},
+        {"name": "postcss", "version": "8.4.49", "license": "MIT"},
+        {"name": "styled-jsx", "version": "5.1.6", "license": "MIT"}
+      ]
+    },
+    {
+      "name": "vue",
+      "ecosystem": "javascript",
+      "github_url": "https://github.com/vuejs/core",
+      "manifest_file": "package.json",
+      "known_license": "MIT",
+      "expected_component_count": {"min": 1, "max": 6},
+      "dependencies": [
+        {"name": "vue", "version": "3.5.13", "license": "MIT"},
+        {"name": "@vue/compiler-core", "version": "3.5.13", "license": "MIT"},
+        {"name": "@vue/runtime-core", "version": "3.5.13", "license": "MIT"},
+        {"name": "@vue/reactivity", "version": "3.5.13", "license": "MIT"},
+        {"name": "@vue/shared", "version": "3.5.13", "license": "MIT"}
+      ]
+    },
+    {
+      "name": "axios",
+      "ecosystem": "javascript",
+      "github_url": "https://github.com/axios/axios",
+      "manifest_file": "package.json",
+      "known_license": "MIT",
+      "expected_component_count": {"min": 1, "max": 4},
+      "dependencies": [
+        {"name": "axios", "version": "1.7.9", "license": "MIT"},
+        {"name": "follow-redirects", "version": "1.15.9", "license": "MIT"},
+        {"name": "form-data", "version": "4.0.1", "license": "MIT"},
+        {"name": "proxy-from-env", "version": "1.1.0", "license": "MIT"}
+      ]
+    },
+    {
+      "name": "lodash",
+      "ecosystem": "javascript",
+      "github_url": "https://github.com/lodash/lodash",
+      "manifest_file": "package.json",
+      "known_license": "MIT",
+      "expected_component_count": {"min": 1, "max": 2},
+      "dependencies": [
+        {"name": "lodash", "version": "4.17.21", "license": "MIT"}
+      ]
+    },
+    {
+      "name": "webpack",
+      "ecosystem": "javascript",
+      "github_url": "https://github.com/webpack/webpack",
+      "manifest_file": "package.json",
+      "known_license": "MIT",
+      "expected_component_count": {"min": 1, "max": 10},
+      "dependencies": [
+        {"name": "webpack", "version": "5.97.1", "license": "MIT"},
+        {"name": "acorn", "version": "8.14.0", "license": "MIT"},
+        {"name": "enhanced-resolve", "version": "5.17.1", "license": "MIT"},
+        {"name": "graceful-fs", "version": "4.2.11", "license": "ISC"},
+        {"name": "tapable", "version": "2.2.1", "license": "MIT"},
+        {"name": "watchpack", "version": "2.4.2", "license": "MIT"},
+        {"name": "webpack-sources", "version": "3.2.3", "license": "MIT"}
+      ]
+    },
+    {
+      "name": "typescript",
+      "ecosystem": "javascript",
+      "github_url": "https://github.com/microsoft/TypeScript",
+      "manifest_file": "package.json",
+      "known_license": "Apache-2.0",
+      "expected_component_count": {"min": 1, "max": 2},
+      "dependencies": [
+        {"name": "typescript", "version": "5.7.2", "license": "Apache-2.0"}
+      ]
+    },
+    {
+      "name": "eslint",
+      "ecosystem": "javascript",
+      "github_url": "https://github.com/eslint/eslint",
+      "manifest_file": "package.json",
+      "known_license": "MIT",
+      "expected_component_count": {"min": 1, "max": 10},
+      "dependencies": [
+        {"name": "eslint", "version": "9.17.0", "license": "MIT"},
+        {"name": "ajv", "version": "6.12.6", "license": "MIT"},
+        {"name": "chalk", "version": "4.1.2", "license": "MIT"},
+        {"name": "debug", "version": "4.4.0", "license": "MIT"},
+        {"name": "espree", "version": "10.3.0", "license": "BSD-2-Clause"},
+        {"name": "globals", "version": "14.0.0", "license": "MIT"},
+        {"name": "minimatch", "version": "3.1.2", "license": "ISC"}
+      ]
+    },
+    {
+      "name": "jest",
+      "ecosystem": "javascript",
+      "github_url": "https://github.com/jestjs/jest",
+      "manifest_file": "package.json",
+      "known_license": "MIT",
+      "expected_component_count": {"min": 1, "max": 8},
+      "dependencies": [
+        {"name": "jest", "version": "29.7.0", "license": "MIT"},
+        {"name": "jest-cli", "version": "29.7.0", "license": "MIT"},
+        {"name": "@jest/core", "version": "29.7.0", "license": "MIT"},
+        {"name": "babel-jest", "version": "29.7.0", "license": "MIT"},
+        {"name": "expect", "version": "29.7.0", "license": "MIT"},
+        {"name": "pretty-format", "version": "29.7.0", "license": "MIT"}
+      ]
+    },
+    {
+      "name": "gin",
+      "ecosystem": "go",
+      "github_url": "https://github.com/gin-gonic/gin",
+      "manifest_file": "go.mod",
+      "known_license": "MIT",
+      "expected_component_count": {"min": 1, "max": 12},
+      "dependencies": [
+        {"name": "github.com/gin-gonic/gin", "version": "v1.10.0", "license": "MIT"},
+        {"name": "github.com/gin-contrib/sse", "version": "v0.1.0", "license": "MIT"},
+        {"name": "github.com/go-playground/validator/v10", "version": "v10.23.0", "license": "MIT"},
+        {"name": "github.com/mattn/go-isatty", "version": "v0.0.20", "license": "MIT"},
+        {"name": "github.com/ugorji/go/codec", "version": "v1.2.12", "license": "MIT"},
+        {"name": "golang.org/x/net", "version": "v0.33.0", "license": "BSD-3-Clause"},
+        {"name": "google.golang.org/protobuf", "version": "v1.36.1", "license": "BSD-3-Clause"}
+      ]
+    },
+    {
+      "name": "echo",
+      "ecosystem": "go",
+      "github_url": "https://github.com/labstack/echo",
+      "manifest_file": "go.mod",
+      "known_license": "MIT",
+      "expected_component_count": {"min": 1, "max": 8},
+      "dependencies": [
+        {"name": "github.com/labstack/echo/v4", "version": "v4.13.3", "license": "MIT"},
+        {"name": "github.com/labstack/gommon", "version": "v0.4.2", "license": "MIT"},
+        {"name": "golang.org/x/crypto", "version": "v0.31.0", "license": "BSD-3-Clause"},
+        {"name": "golang.org/x/net", "version": "v0.33.0", "license": "BSD-3-Clause"}
+      ]
+    },
+    {
+      "name": "cobra",
+      "ecosystem": "go",
+      "github_url": "https://github.com/spf13/cobra",
+      "manifest_file": "go.mod",
+      "known_license": "Apache-2.0",
+      "expected_component_count": {"min": 1, "max": 5},
+      "dependencies": [
+        {"name": "github.com/spf13/cobra", "version": "v1.8.1", "license": "Apache-2.0"},
+        {"name": "github.com/spf13/pflag", "version": "v1.0.5", "license": "BSD-3-Clause"},
+        {"name": "github.com/cpuguy83/go-md2man/v2", "version": "v2.0.4", "license": "MIT"}
+      ]
+    },
+    {
+      "name": "viper",
+      "ecosystem": "go",
+      "github_url": "https://github.com/spf13/viper",
+      "manifest_file": "go.mod",
+      "known_license": "MIT",
+      "expected_component_count": {"min": 1, "max": 12},
+      "dependencies": [
+        {"name": "github.com/spf13/viper", "version": "v1.19.0", "license": "MIT"},
+        {"name": "github.com/spf13/cast", "version": "v1.7.1", "license": "MIT"},
+        {"name": "github.com/spf13/pflag", "version": "v1.0.5", "license": "BSD-3-Clause"},
+        {"name": "github.com/spf13/afero", "version": "v1.11.0", "license": "Apache-2.0"},
+        {"name": "github.com/mitchellh/mapstructure", "version": "v1.5.0", "license": "MIT"},
+        {"name": "github.com/pelletier/go-toml/v2", "version": "v2.2.3", "license": "MIT"}
+      ]
+    },
+    {
+      "name": "kubernetes-client-go",
+      "ecosystem": "go",
+      "github_url": "https://github.com/kubernetes/client-go",
+      "manifest_file": "go.mod",
+      "known_license": "Apache-2.0",
+      "expected_component_count": {"min": 1, "max": 15},
+      "dependencies": [
+        {"name": "k8s.io/client-go", "version": "v0.32.0", "license": "Apache-2.0"},
+        {"name": "k8s.io/api", "version": "v0.32.0", "license": "Apache-2.0"},
+        {"name": "k8s.io/apimachinery", "version": "v0.32.0", "license": "Apache-2.0"},
+        {"name": "k8s.io/klog/v2", "version": "v2.130.1", "license": "Apache-2.0"},
+        {"name": "k8s.io/utils", "version": "v0.0.0-20241210054802-24370beab758", "license": "Apache-2.0"}
+      ]
+    },
+    {
+      "name": "prometheus-go",
+      "ecosystem": "go",
+      "github_url": "https://github.com/prometheus/client_golang",
+      "manifest_file": "go.mod",
+      "known_license": "Apache-2.0",
+      "expected_component_count": {"min": 1, "max": 8},
+      "dependencies": [
+        {"name": "github.com/prometheus/client_golang", "version": "v1.20.5", "license": "Apache-2.0"},
+        {"name": "github.com/prometheus/client_model", "version": "v0.6.1", "license": "Apache-2.0"},
+        {"name": "github.com/prometheus/common", "version": "v0.61.0", "license": "Apache-2.0"},
+        {"name": "github.com/prometheus/procfs", "version": "v0.15.1", "license": "Apache-2.0"}
+      ]
+    },
+    {
+      "name": "gorm",
+      "ecosystem": "go",
+      "github_url": "https://github.com/go-gorm/gorm",
+      "manifest_file": "go.mod",
+      "known_license": "MIT",
+      "expected_component_count": {"min": 1, "max": 5},
+      "dependencies": [
+        {"name": "gorm.io/gorm", "version": "v1.25.12", "license": "MIT"},
+        {"name": "gorm.io/driver/sqlite", "version": "v1.5.7", "license": "MIT"},
+        {"name": "github.com/jinzhu/inflection", "version": "v1.0.0", "license": "MIT"},
+        {"name": "github.com/jinzhu/now", "version": "v1.1.5", "license": "MIT"}
+      ]
+    },
+    {
+      "name": "fiber",
+      "ecosystem": "go",
+      "github_url": "https://github.com/gofiber/fiber",
+      "manifest_file": "go.mod",
+      "known_license": "MIT",
+      "expected_component_count": {"min": 1, "max": 6},
+      "dependencies": [
+        {"name": "github.com/gofiber/fiber/v2", "version": "v2.52.5", "license": "MIT"},
+        {"name": "github.com/valyala/fasthttp", "version": "v1.58.0", "license": "MIT"},
+        {"name": "github.com/valyala/bytebufferpool", "version": "v1.0.0", "license": "MIT"},
+        {"name": "github.com/mattn/go-colorable", "version": "v0.1.13", "license": "MIT"}
+      ]
+    },
+    {
+      "name": "spring-boot",
+      "ecosystem": "java",
+      "github_url": "https://github.com/spring-projects/spring-boot",
+      "manifest_file": "pom.xml",
+      "known_license": "Apache-2.0",
+      "expected_component_count": {"min": 1, "max": 10},
+      "dependencies": [
+        {"name": "org.springframework.boot:spring-boot-starter", "version": "3.4.1", "license": "Apache-2.0"},
+        {"name": "org.springframework.boot:spring-boot-starter-web", "version": "3.4.1", "license": "Apache-2.0"},
+        {"name": "org.springframework:spring-core", "version": "6.2.1", "license": "Apache-2.0"},
+        {"name": "org.springframework:spring-context", "version": "6.2.1", "license": "Apache-2.0"},
+        {"name": "ch.qos.logback:logback-classic", "version": "1.5.15", "license": "EPL-1.0"},
+        {"name": "org.slf4j:slf4j-api", "version": "2.0.16", "license": "MIT"}
+      ]
+    },
+    {
+      "name": "guava",
+      "ecosystem": "java",
+      "github_url": "https://github.com/google/guava",
+      "manifest_file": "pom.xml",
+      "known_license": "Apache-2.0",
+      "expected_component_count": {"min": 1, "max": 5},
+      "dependencies": [
+        {"name": "com.google.guava:guava", "version": "33.4.0-jre", "license": "Apache-2.0"},
+        {"name": "com.google.code.findbugs:jsr305", "version": "3.0.2", "license": "Apache-2.0"},
+        {"name": "com.google.errorprone:error_prone_annotations", "version": "2.36.0", "license": "Apache-2.0"},
+        {"name": "com.google.j2objc:j2objc-annotations", "version": "3.0.0", "license": "Apache-2.0"}
+      ]
+    },
+    {
+      "name": "jackson",
+      "ecosystem": "java",
+      "github_url": "https://github.com/FasterXML/jackson-core",
+      "manifest_file": "pom.xml",
+      "known_license": "Apache-2.0",
+      "expected_component_count": {"min": 1, "max": 5},
+      "dependencies": [
+        {"name": "com.fasterxml.jackson.core:jackson-core", "version": "2.18.2", "license": "Apache-2.0"},
+        {"name": "com.fasterxml.jackson.core:jackson-databind", "version": "2.18.2", "license": "Apache-2.0"},
+        {"name": "com.fasterxml.jackson.core:jackson-annotations", "version": "2.18.2", "license": "Apache-2.0"}
+      ]
+    },
+    {
+      "name": "junit5",
+      "ecosystem": "java",
+      "github_url": "https://github.com/junit-team/junit5",
+      "manifest_file": "pom.xml",
+      "known_license": "EPL-2.0",
+      "expected_component_count": {"min": 1, "max": 5},
+      "dependencies": [
+        {"name": "org.junit.jupiter:junit-jupiter-api", "version": "5.11.4", "license": "EPL-2.0"},
+        {"name": "org.junit.jupiter:junit-jupiter-engine", "version": "5.11.4", "license": "EPL-2.0"},
+        {"name": "org.junit.platform:junit-platform-commons", "version": "1.11.4", "license": "EPL-2.0"},
+        {"name": "org.opentest4j:opentest4j", "version": "1.3.0", "license": "Apache-2.0"}
+      ]
+    },
+    {
+      "name": "log4j",
+      "ecosystem": "java",
+      "github_url": "https://github.com/apache/logging-log4j2",
+      "manifest_file": "pom.xml",
+      "known_license": "Apache-2.0",
+      "expected_component_count": {"min": 1, "max": 4},
+      "dependencies": [
+        {"name": "org.apache.logging.log4j:log4j-api", "version": "2.24.3", "license": "Apache-2.0"},
+        {"name": "org.apache.logging.log4j:log4j-core", "version": "2.24.3", "license": "Apache-2.0"},
+        {"name": "org.apache.logging.log4j:log4j-slf4j2-impl", "version": "2.24.3", "license": "Apache-2.0"}
+      ]
+    },
+    {
+      "name": "hibernate",
+      "ecosystem": "java",
+      "github_url": "https://github.com/hibernate/hibernate-orm",
+      "manifest_file": "pom.xml",
+      "known_license": "LGPL-2.1",
+      "expected_component_count": {"min": 1, "max": 6},
+      "dependencies": [
+        {"name": "org.hibernate.orm:hibernate-core", "version": "6.6.4.Final", "license": "LGPL-2.1"},
+        {"name": "jakarta.persistence:jakarta.persistence-api", "version": "3.2.0", "license": "EPL-2.0"},
+        {"name": "jakarta.transaction:jakarta.transaction-api", "version": "2.0.1", "license": "EPL-2.0"},
+        {"name": "org.jboss.logging:jboss-logging", "version": "3.6.1.Final", "license": "Apache-2.0"}
+      ]
+    },
+    {
+      "name": "android-gradle",
+      "ecosystem": "java",
+      "github_url": "https://github.com/nickallendev/android-example",
+      "manifest_file": "pom.xml",
+      "known_license": "Apache-2.0",
+      "expected_component_count": {"min": 1, "max": 5},
+      "dependencies": [
+        {"name": "com.android.tools.build:gradle", "version": "8.7.3", "license": "Apache-2.0"},
+        {"name": "androidx.appcompat:appcompat", "version": "1.7.0", "license": "Apache-2.0"},
+        {"name": "com.google.android.material:material", "version": "1.12.0", "license": "Apache-2.0"}
+      ]
+    },
+    {
+      "name": "tokio",
+      "ecosystem": "rust",
+      "github_url": "https://github.com/tokio-rs/tokio",
+      "manifest_file": "Cargo.toml",
+      "known_license": "MIT",
+      "expected_component_count": {"min": 1, "max": 8},
+      "dependencies": [
+        {"name": "tokio", "version": "1.42.0", "license": "MIT"},
+        {"name": "tokio-macros", "version": "2.4.0", "license": "MIT"},
+        {"name": "pin-project-lite", "version": "0.2.16", "license": "Apache-2.0"},
+        {"name": "bytes", "version": "1.9.0", "license": "MIT"},
+        {"name": "mio", "version": "1.0.3", "license": "MIT"}
+      ]
+    },
+    {
+      "name": "serde",
+      "ecosystem": "rust",
+      "github_url": "https://github.com/serde-rs/serde",
+      "manifest_file": "Cargo.toml",
+      "known_license": "MIT",
+      "expected_component_count": {"min": 1, "max": 5},
+      "dependencies": [
+        {"name": "serde", "version": "1.0.217", "license": "MIT"},
+        {"name": "serde_derive", "version": "1.0.217", "license": "MIT"},
+        {"name": "serde_json", "version": "1.0.134", "license": "MIT"},
+        {"name": "itoa", "version": "1.0.14", "license": "MIT"},
+        {"name": "ryu", "version": "1.0.18", "license": "Apache-2.0"}
+      ]
+    },
+    {
+      "name": "clap",
+      "ecosystem": "rust",
+      "github_url": "https://github.com/clap-rs/clap",
+      "manifest_file": "Cargo.toml",
+      "known_license": "MIT",
+      "expected_component_count": {"min": 1, "max": 6},
+      "dependencies": [
+        {"name": "clap", "version": "4.5.23", "license": "MIT"},
+        {"name": "clap_builder", "version": "4.5.23", "license": "MIT"},
+        {"name": "clap_derive", "version": "4.5.18", "license": "MIT"},
+        {"name": "clap_lex", "version": "0.7.4", "license": "MIT"},
+        {"name": "anstyle", "version": "1.0.10", "license": "MIT"}
+      ]
+    },
+    {
+      "name": "actix-web",
+      "ecosystem": "rust",
+      "github_url": "https://github.com/actix/actix-web",
+      "manifest_file": "Cargo.toml",
+      "known_license": "MIT",
+      "expected_component_count": {"min": 1, "max": 10},
+      "dependencies": [
+        {"name": "actix-web", "version": "4.9.0", "license": "MIT"},
+        {"name": "actix-http", "version": "3.9.0", "license": "MIT"},
+        {"name": "actix-router", "version": "0.5.3", "license": "MIT"},
+        {"name": "actix-rt", "version": "2.10.0", "license": "MIT"},
+        {"name": "actix-codec", "version": "0.5.2", "license": "MIT"},
+        {"name": "tokio", "version": "1.42.0", "license": "MIT"}
+      ]
+    },
+    {
+      "name": "reqwest",
+      "ecosystem": "rust",
+      "github_url": "https://github.com/seanmonstar/reqwest",
+      "manifest_file": "Cargo.toml",
+      "known_license": "MIT",
+      "expected_component_count": {"min": 1, "max": 10},
+      "dependencies": [
+        {"name": "reqwest", "version": "0.12.12", "license": "MIT"},
+        {"name": "hyper", "version": "1.5.2", "license": "MIT"},
+        {"name": "http", "version": "1.2.0", "license": "MIT"},
+        {"name": "url", "version": "2.5.4", "license": "MIT"},
+        {"name": "serde", "version": "1.0.217", "license": "MIT"},
+        {"name": "tokio", "version": "1.42.0", "license": "MIT"}
+      ]
+    },
+    {
+      "name": "rails",
+      "ecosystem": "ruby",
+      "github_url": "https://github.com/rails/rails",
+      "manifest_file": "Gemfile",
+      "known_license": "MIT",
+      "expected_component_count": {"min": 1, "max": 15},
+      "dependencies": [
+        {"name": "rails", "version": "8.0.1", "license": "MIT"},
+        {"name": "actionpack", "version": "8.0.1", "license": "MIT"},
+        {"name": "activerecord", "version": "8.0.1", "license": "MIT"},
+        {"name": "activesupport", "version": "8.0.1", "license": "MIT"},
+        {"name": "actionmailer", "version": "8.0.1", "license": "MIT"},
+        {"name": "actionview", "version": "8.0.1", "license": "MIT"},
+        {"name": "railties", "version": "8.0.1", "license": "MIT"},
+        {"name": "rack", "version": "3.1.8", "license": "MIT"}
+      ]
+    },
+    {
+      "name": "sinatra",
+      "ecosystem": "ruby",
+      "github_url": "https://github.com/sinatra/sinatra",
+      "manifest_file": "Gemfile",
+      "known_license": "MIT",
+      "expected_component_count": {"min": 1, "max": 6},
+      "dependencies": [
+        {"name": "sinatra", "version": "4.1.1", "license": "MIT"},
+        {"name": "rack", "version": "3.1.8", "license": "MIT"},
+        {"name": "tilt", "version": "2.4.0", "license": "MIT"},
+        {"name": "mustermann", "version": "3.0.3", "license": "MIT"}
+      ]
+    },
+    {
+      "name": "devise",
+      "ecosystem": "ruby",
+      "github_url": "https://github.com/heartcombo/devise",
+      "manifest_file": "Gemfile",
+      "known_license": "MIT",
+      "expected_component_count": {"min": 1, "max": 8},
+      "dependencies": [
+        {"name": "devise", "version": "4.9.4", "license": "MIT"},
+        {"name": "warden", "version": "1.2.9", "license": "MIT"},
+        {"name": "bcrypt", "version": "3.1.20", "license": "MIT"},
+        {"name": "orm_adapter", "version": "0.5.0", "license": "MIT"},
+        {"name": "responders", "version": "3.1.1", "license": "MIT"}
+      ]
+    },
+    {
+      "name": "sidekiq",
+      "ecosystem": "ruby",
+      "github_url": "https://github.com/sidekiq/sidekiq",
+      "manifest_file": "Gemfile",
+      "known_license": "LGPL-3.0",
+      "expected_component_count": {"min": 1, "max": 5},
+      "dependencies": [
+        {"name": "sidekiq", "version": "7.3.6", "license": "LGPL-3.0"},
+        {"name": "redis-client", "version": "0.22.2", "license": "MIT"},
+        {"name": "connection_pool", "version": "2.4.1", "license": "MIT"},
+        {"name": "concurrent-ruby", "version": "1.3.4", "license": "MIT"}
+      ]
+    },
+    {
+      "name": "rspec",
+      "ecosystem": "ruby",
+      "github_url": "https://github.com/rspec/rspec-core",
+      "manifest_file": "Gemfile",
+      "known_license": "MIT",
+      "expected_component_count": {"min": 1, "max": 6},
+      "dependencies": [
+        {"name": "rspec-core", "version": "3.13.2", "license": "MIT"},
+        {"name": "rspec-expectations", "version": "3.13.3", "license": "MIT"},
+        {"name": "rspec-mocks", "version": "3.13.2", "license": "MIT"},
+        {"name": "rspec-support", "version": "3.13.2", "license": "MIT"}
+      ]
+    },
+    {
+      "name": "aspnetcore",
+      "ecosystem": "dotnet",
+      "github_url": "https://github.com/dotnet/aspnetcore",
+      "manifest_file": "app.csproj",
+      "known_license": "MIT",
+      "expected_component_count": {"min": 1, "max": 8},
+      "dependencies": [
+        {"name": "Microsoft.AspNetCore.App", "version": "9.0.0", "license": "MIT"},
+        {"name": "Microsoft.Extensions.Hosting", "version": "9.0.0", "license": "MIT"},
+        {"name": "Microsoft.Extensions.Logging", "version": "9.0.0", "license": "MIT"},
+        {"name": "Swashbuckle.AspNetCore", "version": "7.2.0", "license": "MIT"}
+      ]
+    },
+    {
+      "name": "efcore",
+      "ecosystem": "dotnet",
+      "github_url": "https://github.com/dotnet/efcore",
+      "manifest_file": "app.csproj",
+      "known_license": "MIT",
+      "expected_component_count": {"min": 1, "max": 6},
+      "dependencies": [
+        {"name": "Microsoft.EntityFrameworkCore", "version": "9.0.0", "license": "MIT"},
+        {"name": "Microsoft.EntityFrameworkCore.SqlServer", "version": "9.0.0", "license": "MIT"},
+        {"name": "Microsoft.EntityFrameworkCore.Tools", "version": "9.0.0", "license": "MIT"}
+      ]
+    },
+    {
+      "name": "newtonsoft-json",
+      "ecosystem": "dotnet",
+      "github_url": "https://github.com/JamesNK/Newtonsoft.Json",
+      "manifest_file": "app.csproj",
+      "known_license": "MIT",
+      "expected_component_count": {"min": 1, "max": 3},
+      "dependencies": [
+        {"name": "Newtonsoft.Json", "version": "13.0.3", "license": "MIT"}
+      ]
+    },
+    {
+      "name": "serilog",
+      "ecosystem": "dotnet",
+      "github_url": "https://github.com/serilog/serilog",
+      "manifest_file": "app.csproj",
+      "known_license": "Apache-2.0",
+      "expected_component_count": {"min": 1, "max": 5},
+      "dependencies": [
+        {"name": "Serilog", "version": "4.2.0", "license": "Apache-2.0"},
+        {"name": "Serilog.Sinks.Console", "version": "6.0.0", "license": "Apache-2.0"},
+        {"name": "Serilog.Sinks.File", "version": "6.0.0", "license": "Apache-2.0"}
+      ]
+    },
+    {
+      "name": "xunit",
+      "ecosystem": "dotnet",
+      "github_url": "https://github.com/xunit/xunit",
+      "manifest_file": "app.csproj",
+      "known_license": "Apache-2.0",
+      "expected_component_count": {"min": 1, "max": 5},
+      "dependencies": [
+        {"name": "xunit", "version": "2.9.3", "license": "Apache-2.0"},
+        {"name": "xunit.core", "version": "2.9.3", "license": "Apache-2.0"},
+        {"name": "xunit.assert", "version": "2.9.3", "license": "Apache-2.0"},
+        {"name": "xunit.runner.visualstudio", "version": "2.8.2", "license": "Apache-2.0"}
+      ]
+    }
+  ]
+}

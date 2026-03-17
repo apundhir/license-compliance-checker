@@ -1,0 +1,66 @@
+site_name: "LCC — License Compliance Checker"
+site_description: "The only open source compliance platform that treats AI models as first-class citizens"
+site_url: https://apundhir.github.io/license-compliance-checker/
+repo_url: https://github.com/apundhir/license-compliance-checker
+repo_name: apundhir/license-compliance-checker
+
+theme:
+  name: material
+  palette:
+    - scheme: slate
+      primary: indigo
+      accent: amber
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+    - scheme: default
+      primary: indigo
+      accent: amber
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.highlight
+    - content.code.copy
+
+plugins:
+  - search
+  - minify:
+      minify_html: true
+
+markdown_extensions:
+  - admonition
+  - codehilite
+  - toc:
+      permalink: true
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - attr_list
+  - md_in_html
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Quick Start: getting-started/quickstart.md
+      - Installation: getting-started/installation.md
+  - User Guide: guides/user.md
+  - Policy Guide: guides/policies.md
+  - API Reference: reference/api.md
+  - Deployment:
+      - Guide: deployment/index.md
+      - Checklist: deployment/checklist.md
+      - Dashboard Access: deployment/ui-access.md
+  - Reference:
+      - Troubleshooting: reference/troubleshooting.md
+      - FAQ: reference/faq.md
+      - Testing Guide: guides/testing.md
+  - Contributing: CONTRIBUTING.md
+  - Changelog: CHANGELOG.md

@@ -24,10 +24,38 @@ inputs:
     description: 'Confidence threshold for violations'
     required: false
     default: '0.5'
+  fail-on:
+    description: 'When to fail the action: violations, warnings, none'
+    required: false
+    default: 'violations'
+  ecosystems:
+    description: 'Comma-separated list of ecosystems to scan (e.g. python,node,go). Default: all'
+    required: false
+    default: 'all'
+  exclude:
+    description: 'Glob patterns to exclude, comma-separated (e.g. "tests/**,docs/**")'
+    required: false
+    default: ''
+  sbom-format:
+    description: 'SBOM format to generate: cyclonedx, spdx, none'
+    required: false
+    default: 'none'
 outputs:
   report:
     description: 'Path to generated report'
     value: ${{ steps.scan.outputs.report }}
+  status:
+    description: 'Compliance status: pass, warning, violation'
+    value: ${{ steps.parse-results.outputs.status }}
+  violation-count:
+    description: 'Number of violations found'
+    value: ${{ steps.parse-results.outputs.violation_count }}
+  warning-count:
+    description: 'Number of warnings found'
+    value: ${{ steps.parse-results.outputs.warning_count }}
+  sbom-path:
+    description: 'Path to generated SBOM file (if sbom-format != none)'
+    value: ${{ steps.generate-sbom.outputs.sbom_path }}
 runs:
   using: composite
   steps:
@@ -36,6 +64,7 @@ runs:
       run: |
         python -m pip install --upgrade pip
         pip install .
+
     - id: scan
       name: Run scan
       shell: bash
@@ -44,9 +73,166 @@ runs:
         LCC_OPA_TOKEN: ${{ inputs.LCC_OPA_TOKEN || env.LCC_OPA_TOKEN }}
         LCC_REDIS_URL: ${{ inputs.LCC_REDIS_URL || env.LCC_REDIS_URL }}
       run: |
+        # Build exclude flags
+        EXCLUDE_FLAGS=""
+        if [ -n "${{ inputs.exclude }}" ]; then
+          IFS=',' read -ra PATTERNS <<< "${{ inputs.exclude }}"
+          for pattern in "${PATTERNS[@]}"; do
+            trimmed="$(echo "$pattern" | xargs)"
+            if [ -n "$trimmed" ]; then
+              EXCLUDE_FLAGS="$EXCLUDE_FLAGS --exclude $trimmed"
+            fi
+          done
+        fi
+
+        # Build manifest flags for ecosystem filtering
+        MANIFEST_FLAGS=""
+        if [ "${{ inputs.ecosystems }}" != "all" ]; then
+          IFS=',' read -ra ECOS <<< "${{ inputs.ecosystems }}"
+          for eco in "${ECOS[@]}"; do
+            trimmed="$(echo "$eco" | xargs)"
+            case "$trimmed" in
+              python)
+                MANIFEST_FLAGS="$MANIFEST_FLAGS --manifest requirements.txt --manifest setup.py --manifest pyproject.toml --manifest Pipfile --manifest poetry.lock"
+                ;;
+              node|nodejs|npm)
+                MANIFEST_FLAGS="$MANIFEST_FLAGS --manifest package.json"
+                ;;
+              go|golang)
+                MANIFEST_FLAGS="$MANIFEST_FLAGS --manifest go.mod"
+                ;;
+              conda)
+                MANIFEST_FLAGS="$MANIFEST_FLAGS --manifest environment.yml"
+                ;;
+            esac
+          done
+        fi
+
+        # Run the scan -- allow non-zero exit (violations return code 2)
+        set +e
         lcc scan "${{ inputs.path }}" \
           --format "${{ inputs.format }}" \
           --output "${{ inputs.output }}" \
           --threshold "${{ inputs.threshold }}" \
-          ${{ inputs.policy && format('--policy {0}', inputs.policy) || '' }}
-        echo "report=${{ inputs.output }}" >> $GITHUB_OUTPUT
+          ${{ inputs.policy && format('--policy {0}', inputs.policy) || '' }} \
+          $EXCLUDE_FLAGS \
+          $MANIFEST_FLAGS
+        SCAN_EXIT=$?
+        set -e
+
+        echo "report=${{ inputs.output }}" >> "$GITHUB_OUTPUT"
+        echo "scan_exit=$SCAN_EXIT" >> "$GITHUB_OUTPUT"
+
+    - id: parse-results
+      name: Parse scan results
+      shell: bash
+      run: |
+        python3 - <<'PYEOF'
+        import json
+        import os
+        import sys
+
+        report_path = "${{ inputs.output }}"
+        try:
+            with open(report_path, encoding="utf-8") as f:
+                report = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError) as exc:
+            print(f"::warning::Could not parse report at {report_path}: {exc}")
+            with open(os.environ["GITHUB_OUTPUT"], "a") as gh:
+                gh.write("status=error\n")
+                gh.write("violation_count=0\n")
+                gh.write("warning_count=0\n")
+            sys.exit(0)
+
+        summary = report.get("summary", {})
+        policy_ctx = summary.get("context", {}).get("policy", {})
+
+        # Count violations from summary
+        violation_count = summary.get("violations", 0)
+
+        # Count policy violations if present
+        policy_violations = policy_ctx.get("violations", [])
+        if isinstance(policy_violations, list):
+            policy_violation_count = len(policy_violations)
+        else:
+            policy_violation_count = int(policy_violations) if policy_violations else 0
+
+        # Count warnings from policy context
+        policy_warnings = policy_ctx.get("warnings", [])
+        if isinstance(policy_warnings, list):
+            warning_count = len(policy_warnings)
+        else:
+            warning_count = int(policy_warnings) if policy_warnings else 0
+
+        # Also count warnings from findings
+        findings = report.get("findings", [])
+        for finding in findings:
+            confidence = finding.get("confidence", 1.0)
+            resolved = finding.get("resolved_license")
+            threshold = float("${{ inputs.threshold }}")
+            # Components below threshold but with a license are warnings
+            if resolved and confidence < threshold and confidence >= threshold * 0.5:
+                warning_count += 1
+
+        # Determine overall status
+        if violation_count > 0 or policy_violation_count > 0:
+            status = "violation"
+        elif warning_count > 0:
+            status = "warning"
+        else:
+            status = "pass"
+
+        # Use the higher of summary violations and policy violations
+        total_violations = max(violation_count, policy_violation_count)
+        if violation_count > 0 and policy_violation_count > 0:
+            total_violations = violation_count  # summary already includes policy violations
+
+        print(f"Compliance status: {status}")
+        print(f"Violations: {total_violations}, Warnings: {warning_count}")
+
+        with open(os.environ["GITHUB_OUTPUT"], "a") as gh:
+            gh.write(f"status={status}\n")
+            gh.write(f"violation_count={total_violations}\n")
+            gh.write(f"warning_count={warning_count}\n")
+        PYEOF
+
+    - id: generate-sbom
+      name: Generate SBOM
+      if: inputs.sbom-format != 'none'
+      shell: bash
+      run: |
+        SBOM_OUTPUT="lcc-sbom.${{ inputs.sbom-format }}.json"
+        lcc sbom generate "${{ inputs.output }}" \
+          --output "$SBOM_OUTPUT" \
+          --format "${{ inputs.sbom-format }}"
+        echo "sbom_path=$SBOM_OUTPUT" >> "$GITHUB_OUTPUT"
+
+    - id: check-failure
+      name: Check failure conditions
+      shell: bash
+      run: |
+        FAIL_ON="${{ inputs.fail-on }}"
+        STATUS="${{ steps.parse-results.outputs.status }}"
+        VIOLATIONS="${{ steps.parse-results.outputs.violation_count }}"
+        WARNINGS="${{ steps.parse-results.outputs.warning_count }}"
+
+        echo "Fail-on policy: $FAIL_ON"
+        echo "Scan status: $STATUS"
+        echo "Violations: $VIOLATIONS"
+        echo "Warnings: $WARNINGS"
+
+        if [ "$FAIL_ON" = "violations" ]; then
+          if [ "$STATUS" = "violation" ]; then
+            echo "::error::License compliance check failed with $VIOLATIONS violation(s)"
+            exit 1
+          fi
+        elif [ "$FAIL_ON" = "warnings" ]; then
+          if [ "$STATUS" = "violation" ] || [ "$STATUS" = "warning" ]; then
+            echo "::error::License compliance check failed with $VIOLATIONS violation(s) and $WARNINGS warning(s)"
+            exit 1
+          fi
+        elif [ "$FAIL_ON" = "none" ]; then
+          echo "Fail-on set to 'none' -- not failing regardless of results"
+        fi
+
+        echo "License compliance check passed (status=$STATUS, fail-on=$FAIL_ON)"
