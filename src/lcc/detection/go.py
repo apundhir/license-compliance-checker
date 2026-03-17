@@ -82,6 +82,21 @@ class GoDetector(Detector):
                     for name, version, metadata in self._parse_go_mod(nested_mod, module_dir):
                         register(name, version, metadata)
 
+        # Assign dependency depth metadata to all components
+        for component in registry.values():
+            # Go already tracks indirect via metadata["indirect"]
+            # Check if any source entry has indirect=True
+            is_indirect = False
+            for source_entry in component.metadata.get("sources", []):
+                if source_entry.get("indirect"):
+                    is_indirect = True
+                    break
+            is_direct = not is_indirect
+            component.metadata["is_direct"] = is_direct
+            component.metadata["dependency_depth"] = 0 if is_direct else 1
+            component.metadata["parent_packages"] = []
+            component.metadata["dependency_source"] = "manifest"  # go.mod is both manifest and lock
+
         return list(registry.values())
 
     # -------------------------

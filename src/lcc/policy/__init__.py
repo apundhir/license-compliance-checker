@@ -22,6 +22,17 @@ from .base import (  # noqa: F401
     PolicyManager,
     evaluate_policy,
 )
+from .compatibility import (  # noqa: F401
+    CompatibilityIssue,
+    CompatibilityReport,
+    LicenseCompatibilityChecker,
+    classify_license,
+    evaluate_license_compatibility,
+)
+from .compatibility_integration import (  # noqa: F401
+    policy_has_compatibility,
+    run_compatibility_check,
+)
 from .decision_recorder import DecisionRecorder  # noqa: F401
 from .opa_client import OPAClient, OPAClientError  # noqa: F401
 
@@ -32,6 +43,13 @@ __all__ = [
     "PolicyManager",
     "PolicyError",
     "evaluate_policy",
+    "CompatibilityIssue",
+    "CompatibilityReport",
+    "LicenseCompatibilityChecker",
+    "classify_license",
+    "evaluate_license_compatibility",
+    "policy_has_compatibility",
+    "run_compatibility_check",
     "DecisionRecorder",
     "OPAClient",
     "OPAClientError",

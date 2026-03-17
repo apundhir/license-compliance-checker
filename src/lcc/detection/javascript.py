@@ -51,6 +51,8 @@ class JavaScriptDetector(Detector):
 
     def discover(self, project_root: Path) -> Sequence[Component]:
         registry: dict[tuple[str, str], Component] = {}
+        # Track direct dependency names from package.json manifests
+        manifest_direct_names: set[str] = set()
 
         def register(name: str, version: str | None, metadata: MutableMapping[str, object]) -> None:
             source = metadata.pop("source", "unknown")
@@ -86,7 +88,7 @@ class JavaScriptDetector(Detector):
             # But detectors usually do robust checking. For now rglob is fine, we filter in loop
             return project_root.rglob(filename)
 
-        # package.json
+        # package.json — collect direct dependency names
         for path in find_files("package.json"):
             if any(part in skip_dirs for part in path.parts):
                  continue
@@ -99,12 +101,24 @@ class JavaScriptDetector(Detector):
             relative_source = str(path.relative_to(project_root))
             for spec in self._parse_package_json(data, relative_source):
                 register(*spec)
+            # Collect direct dep names from manifest sections
+            for section in ("dependencies", "devDependencies", "optionalDependencies", "peerDependencies"):
+                deps = data.get(section, {})
+                if isinstance(deps, dict):
+                    manifest_direct_names.update(deps.keys())
 
+        # package-lock.json — parse and build dep graph
+        lock_dep_graph: dict[str, list[str]] = {}
+        lock_root_deps: set[str] = set()
         for path in find_files("package-lock.json"):
             if any(part in skip_dirs for part in path.parts): continue
             if self._is_excluded(path, project_root): continue
             for spec in self._parse_package_lock_file(path, project_root):
                 register(*spec)
+            # Build dependency graph from lock file
+            root_deps, dep_graph = self._build_npm_dependency_graph(path)
+            lock_root_deps.update(root_deps)
+            lock_dep_graph.update(dep_graph)
 
         for path in find_files("yarn.lock"):
             if any(part in skip_dirs for part in path.parts): continue
@@ -118,10 +132,129 @@ class JavaScriptDetector(Detector):
             for spec in self._parse_pnpm_lock_file(path, project_root):
                  register(*spec)
 
+        # Merge lock root deps into manifest direct names
+        manifest_direct_names.update(lock_root_deps)
+
+        # Compute depths from the npm dependency graph
+        depth_map: dict[str, int] = {}
+        parent_map: dict[str, list[str]] = {}
+        if lock_dep_graph:
+            depth_map, parent_map = self._compute_npm_dependency_depths(
+                manifest_direct_names, lock_dep_graph,
+            )
+
+        # Assign dependency depth metadata to all components
+        for (_name, _version), component in registry.items():
+            name = _name
+            is_direct = name in manifest_direct_names
+            # Determine source type
+            source_files = [s.get("source", "") for s in component.metadata.get("sources", [])]
+            has_manifest = any(
+                "package.json" in str(s) and "lock" not in str(s)
+                for s in source_files
+            )
+            has_lockfile = any(
+                "lock" in str(s).lower() or "yarn.lock" in str(s)
+                for s in source_files
+            )
+            if has_manifest and has_lockfile:
+                dep_source = "both"
+            elif has_lockfile:
+                dep_source = "lockfile"
+            else:
+                dep_source = "manifest"
+
+            component.metadata["is_direct"] = is_direct
+            component.metadata["dependency_depth"] = depth_map.get(name, 0 if is_direct else 1)
+            component.metadata["parent_packages"] = parent_map.get(name, [])
+            component.metadata["dependency_source"] = dep_source
+
         for component in registry.values():
             if isinstance(component.metadata.get("licenses"), set):
                 component.metadata["licenses"] = sorted(component.metadata["licenses"])
         return list(registry.values())
+
+    # -------------------------
+    # Dependency depth helpers
+    # -------------------------
+
+    def _build_npm_dependency_graph(self, lock_path: Path) -> tuple[set[str], dict[str, list[str]]]:
+        """Build a dependency graph from package-lock.json v3 (packages format).
+
+        Returns (root_direct_deps, dependency_graph).
+        """
+        root_deps: set[str] = set()
+        dep_graph: dict[str, list[str]] = {}
+        try:
+            data = json.loads(lock_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return root_deps, dep_graph
+
+        packages = data.get("packages")
+        if not isinstance(packages, dict):
+            return root_deps, dep_graph
+
+        # The root entry "" lists its dependencies
+        root_entry = packages.get("", {})
+        if isinstance(root_entry, dict):
+            for section in ("dependencies", "devDependencies", "optionalDependencies", "peerDependencies"):
+                deps = root_entry.get(section, {})
+                if isinstance(deps, dict):
+                    root_deps.update(deps.keys())
+
+        # Build graph from each package entry
+        for package_path, package_data in packages.items():
+            if package_path in ("", ".") or not isinstance(package_data, dict):
+                continue
+            # Extract package name
+            name = package_data.get("name")
+            if not isinstance(name, str):
+                parts = package_path.split("node_modules/")
+                if len(parts) > 1:
+                    name = parts[-1]
+            if not isinstance(name, str):
+                continue
+            # Collect this package's dependencies
+            children: list[str] = []
+            for dep_section in ("dependencies", "optionalDependencies", "peerDependencies"):
+                dep_data = package_data.get(dep_section, {})
+                if isinstance(dep_data, dict):
+                    children.extend(dep_data.keys())
+            if children:
+                dep_graph[name] = children
+
+        return root_deps, dep_graph
+
+    def _compute_npm_dependency_depths(
+        self,
+        direct_names: set[str],
+        dep_graph: dict[str, list[str]],
+    ) -> tuple[dict[str, int], dict[str, list[str]]]:
+        """BFS from direct dependencies to compute depth and parent_packages."""
+        from collections import deque
+
+        depth_map: dict[str, int] = {}
+        parent_map: dict[str, list[str]] = {}
+
+        queue: deque[str] = deque()
+        for name in direct_names:
+            depth_map[name] = 0
+            parent_map[name] = []
+            queue.append(name)
+
+        while queue:
+            current = queue.popleft()
+            current_depth = depth_map[current]
+            for child in dep_graph.get(current, []):
+                if child not in depth_map:
+                    depth_map[child] = current_depth + 1
+                    parent_map[child] = [current]
+                    queue.append(child)
+                else:
+                    if current not in parent_map.get(child, []):
+                        parent_map.setdefault(child, []).append(current)
+
+        return depth_map, parent_map
 
     # -------------------------
     # Manifest parsers

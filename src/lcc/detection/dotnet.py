@@ -121,6 +121,13 @@ class DotNetDetector(Detector):
             name, version, metadata = requirement
             register(name, version, "paket.dependencies", metadata)
 
+        # Assign dependency depth metadata — .NET has no lock file parsing, mark all as direct
+        for component in specs.values():
+            component.metadata["is_direct"] = True
+            component.metadata["dependency_depth"] = 0
+            component.metadata["parent_packages"] = []
+            component.metadata["dependency_source"] = "manifest"
+
         return list(specs.values())
 
     def _parse_packages_config(self, project_root: Path) -> Iterable[RequirementSpec]:

@@ -52,6 +52,8 @@ from lcc.policy import (
     PolicyError,
     PolicyManager,
     evaluate_policy,
+    policy_has_compatibility,
+    run_compatibility_check,
 )
 from lcc.policy.decision_recorder import DecisionRecorder
 from lcc.policy.opa_client import OPAClient, OPAClientError
@@ -116,6 +118,9 @@ def build_parser() -> argparse.ArgumentParser:
     scan_parser.add_argument("--git", action="append", default=[], help="Clone git repository url[@ref] and scan")
     scan_parser.add_argument("--git-depth", type=int, default=1, help="Depth when cloning git repositories")
     scan_parser.add_argument("--check-vulnerabilities", action="store_true", help="Check for known vulnerabilities (OSV)")
+    scan_parser.add_argument("--check-compatibility", action="store_true", help="Run license compatibility analysis")
+    scan_parser.add_argument("--project-license", type=str, help="SPDX identifier for the project license (e.g. Apache-2.0)")
+    scan_parser.add_argument("--deployment-context", type=str, choices=["saas", "distributed", "internal", "library"], help="Deployment context for compatibility checks")
     scan_parser.set_defaults(func=handle_scan)
 
     interactive_parser = subparsers.add_parser("interactive", help="Interactive scan exploration")
@@ -383,6 +388,46 @@ def handle_scan(args: argparse.Namespace) -> int:
     if policy_context:
         report.summary.context["policy"] = policy_context
 
+    # ---- Compatibility check (post-scan, post-policy analysis) ----
+    compat_report = None
+    compat_policy_data = None
+    run_compat = getattr(args, "check_compatibility", False)
+
+    # Also auto-enable if the active policy has a compatibility section
+    if policy_context and isinstance(policy_context, dict):
+        policy_name = policy_context.get("name")
+        if policy_name:
+            try:
+                _pm = PolicyManager(config)
+                _pol = _pm.load_policy(str(policy_name))
+                compat_policy_data = _pol.data
+                if not run_compat and policy_has_compatibility(_pol.data):
+                    run_compat = True
+            except PolicyError:
+                pass
+
+    if run_compat:
+        # If we still lack policy data, try resolving from the --policy flag
+        if compat_policy_data is None:
+            supplied = getattr(args, "policy", None)
+            if supplied:
+                try:
+                    _pm = PolicyManager(config)
+                    compat_policy_data, _ = _resolve_policy_definition(_pm, supplied)
+                except PolicyError:
+                    pass
+
+        deployment_ctx = getattr(args, "deployment_context", None) or getattr(args, "context", None)
+        project_license = getattr(args, "project_license", None)
+
+        compat_report = run_compatibility_check(
+            findings=report.findings,
+            policy=compat_policy_data,
+            context=deployment_ctx,
+            project_license=project_license,
+        )
+        report.summary.context["compatibility"] = compat_report.to_dict()
+
     threshold = max(0.0, min(1.0, float(args.threshold)))
     violations = [finding for finding in report.findings if finding.confidence < threshold or not finding.resolved_license]
     report.summary.violations = len(violations) + policy_violations
@@ -398,6 +443,8 @@ def handle_scan(args: argparse.Namespace) -> int:
     else:
         reporter = ConsoleReporter(console=console, threshold=threshold, quiet=args.quiet)
         reporter.write(report)
+        if compat_report and compat_report.issues:
+            _print_compatibility_report(console, compat_report)
 
     if args.parallel:
         console.print("[yellow]Parallel execution is planned for a future release.[/yellow]")
@@ -1022,6 +1069,57 @@ def _is_violation(finding: ComponentFinding) -> bool:
     return (status or "").lower() == "violation"
 
 
+def _print_compatibility_report(console: Console, compat_report) -> None:
+    """Render license compatibility issues to the console."""
+    from lcc.policy.compatibility import CompatibilityReport
+
+    if not isinstance(compat_report, CompatibilityReport):
+        return
+    if not compat_report.issues:
+        console.print("\n[green]No license compatibility issues detected.[/green]")
+        return
+
+    severity_style = {
+        "critical": "bold red",
+        "high": "red",
+        "medium": "yellow",
+        "low": "dim",
+    }
+
+    table = Table(title="License Compatibility Issues", expand=True)
+    table.add_column("Severity", justify="center")
+    table.add_column("Type")
+    table.add_column("Components")
+    table.add_column("Description")
+    table.add_column("Recommendation")
+
+    for issue in compat_report.issues:
+        style = severity_style.get(issue.severity, "")
+        table.add_row(
+            f"[{style}]{issue.severity.upper()}[/{style}]",
+            issue.issue_type,
+            ", ".join(issue.components[:3]) + ("..." if len(issue.components) > 3 else ""),
+            issue.description[:120] + ("..." if len(issue.description) > 120 else ""),
+            issue.recommendation[:100] + ("..." if len(issue.recommendation) > 100 else ""),
+        )
+
+    console.print(table)
+
+    summary = compat_report.summary
+    parts = []
+    for sev in ("critical", "high", "medium", "low"):
+        count = summary.get(sev, 0)
+        if count:
+            style = severity_style.get(sev, "")
+            parts.append(f"[{style}]{count} {sev}[/{style}]")
+    if parts:
+        console.print("Compatibility: " + " | ".join(parts))
+    if not compat_report.compatible:
+        console.print("[bold red]License compatibility check FAILED -- critical or high issues found.[/bold red]")
+    else:
+        console.print("[green]License compatibility check passed.[/green]")
+
+
 def _filter_indices(report: ScanReport, predicate) -> list[int]:
     return [idx for idx, finding in enumerate(report.findings) if predicate(finding)]
 
@@ -1345,6 +1443,35 @@ def process_scan_job(job: Job, config: LCCConfig) -> dict[str, Any]:
     )
     if policy_context:
         report.summary.context["policy"] = policy_context
+
+    # Run compatibility check if the policy has a compatibility section
+    compat_policy_data = None
+    policy_name_for_compat = payload.get("policy")
+    if policy_name_for_compat:
+        try:
+            _pm = PolicyManager(config)
+            _pol = _pm.load_policy(str(policy_name_for_compat))
+            compat_policy_data = _pol.data
+        except PolicyError:
+            pass
+    elif policy_context and isinstance(policy_context, dict):
+        pn = policy_context.get("name")
+        if pn:
+            try:
+                _pm = PolicyManager(config)
+                _pol = _pm.load_policy(str(pn))
+                compat_policy_data = _pol.data
+            except PolicyError:
+                pass
+
+    if compat_policy_data and policy_has_compatibility(compat_policy_data):
+        compat_report = run_compatibility_check(
+            findings=report.findings,
+            policy=compat_policy_data,
+            context=job_context,
+        )
+        report.summary.context["compatibility"] = compat_report.to_dict()
+
     violations = [finding for finding in report.findings if finding.confidence < threshold or not finding.resolved_license]
     report.summary.violations = len(violations) + policy_violations
 

@@ -246,3 +246,9 @@ contexts:
       - Prioritises permissive licenses to avoid copyleft propagation in SaaS.
       - All AI model licenses are reviewed for SaaS-specific restrictions.
       - Unknown licenses are treated as violations for regulatory safety.
+
+compatibility:
+  check_contamination: true
+  check_agpl_saas: true
+  check_pairwise: true
+  check_weak_copyleft: true

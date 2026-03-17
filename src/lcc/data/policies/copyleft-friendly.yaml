@@ -50,3 +50,9 @@ contexts:
       GPL-*: "Confirm firmware distribution mechanism meets source availability obligations."
       LGPL-*: "Ensure user relinking provisions are satisfied."
     dual_license_preference: avoid_copyleft
+
+compatibility:
+  check_contamination: false
+  check_agpl_saas: true
+  check_pairwise: true
+  check_weak_copyleft: false

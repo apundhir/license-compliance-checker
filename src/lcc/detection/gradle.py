@@ -53,6 +53,8 @@ class GradleDetector(Detector):
 
     def discover(self, project_root: Path) -> Sequence[Component]:
         components: dict[tuple[str, str], Component] = {}
+        # Track names declared in build.gradle files (direct deps)
+        manifest_direct_names: set[str] = set()
 
         for build_file in self._collect_build_files(project_root):
             for name, version, metadata in self._parse_build_file(build_file):
@@ -69,6 +71,7 @@ class GradleDetector(Detector):
                 source_entry = {"source": str(build_file.relative_to(project_root)), **metadata}
                 source_entry["project_root"] = str(project_root)
                 components[key].metadata.setdefault("sources", []).append(source_entry)
+                manifest_direct_names.add(name)
 
         for lock_file in project_root.glob("**/gradle.lockfile"):
             for name, version, metadata in self._parse_lock_file(lock_file):
@@ -85,6 +88,32 @@ class GradleDetector(Detector):
                 source_entry = {"source": str(lock_file.relative_to(project_root)), **metadata}
                 source_entry["project_root"] = str(project_root)
                 components[key].metadata.setdefault("sources", []).append(source_entry)
+
+        # Assign dependency depth metadata
+        for component in components.values():
+            comp_name = component.name
+            is_direct = comp_name in manifest_direct_names
+            # Determine source type
+            source_files = [s.get("source", "") for s in component.metadata.get("sources", [])]
+            has_manifest = any(
+                "build.gradle" in str(s) or "settings.gradle" in str(s)
+                for s in source_files
+            )
+            has_lockfile = any(
+                "gradle.lockfile" in str(s)
+                for s in source_files
+            )
+            if has_manifest and has_lockfile:
+                dep_source = "both"
+            elif has_lockfile:
+                dep_source = "lockfile"
+            else:
+                dep_source = "manifest"
+
+            component.metadata["is_direct"] = is_direct
+            component.metadata["dependency_depth"] = 0 if is_direct else 1
+            component.metadata["parent_packages"] = []
+            component.metadata["dependency_source"] = dep_source
 
         return list(components.values())
 

@@ -66,6 +66,8 @@ class PythonDetector(Detector):
 
     def discover(self, project_root: Path) -> Sequence[Component]:
         specs: dict[tuple[str, str], Component] = {}
+        # Track which canonical names appear in manifest files (direct deps)
+        manifest_direct_names: set[str] = set()
 
         def register(
             name: str,
@@ -107,6 +109,7 @@ class PythonDetector(Detector):
         for requirement in self._parse_requirements_txt(project_root):
             name, version, metadata = requirement
             register(name, version, metadata.get("source", "requirements.txt"), metadata)
+            manifest_direct_names.add(canonicalize_name(name))
 
         # setup.py
         for path in find_files("setup.py"):
@@ -114,6 +117,7 @@ class PythonDetector(Detector):
             for requirement in self._parse_setup_py_file(path, project_root):
                 name, version, metadata = requirement
                 register(name, version, str(path.relative_to(project_root)), metadata)
+                manifest_direct_names.add(canonicalize_name(name))
 
         # pyproject.toml
         for path in find_files("pyproject.toml"):
@@ -121,6 +125,7 @@ class PythonDetector(Detector):
             for requirement in self._parse_pyproject_file(path, project_root):
                  name, version, metadata = requirement
                  register(name, version, metadata.pop("source", str(path.relative_to(project_root))), metadata)
+                 manifest_direct_names.add(canonicalize_name(name))
 
         # Pipfile
         for path in find_files("Pipfile"):
@@ -128,13 +133,19 @@ class PythonDetector(Detector):
             for requirement in self._parse_pipfile_file(path, project_root):
                 name, version, metadata = requirement
                 register(name, version, str(path.relative_to(project_root)), metadata)
+                manifest_direct_names.add(canonicalize_name(name))
 
-        # poetry.lock
+        # poetry.lock — collect direct names from pyproject.toml before processing
         for path in find_files("poetry.lock"):
             if self._is_excluded(path, project_root): continue
+            pyproject_path = path.parent / "pyproject.toml"
+            poetry_direct_names = self._collect_poetry_direct_names(pyproject_path)
             for requirement in self._parse_poetry_lock_file(path, project_root):
                 name, version, metadata = requirement
                 register(name, version, str(path.relative_to(project_root)), metadata)
+                # Poetry lock packages that also appear in pyproject.toml are direct
+                if canonicalize_name(name) in poetry_direct_names:
+                    manifest_direct_names.add(canonicalize_name(name))
 
         # environment.yml
         for path in find_files("environment.yml"):
@@ -142,15 +153,161 @@ class PythonDetector(Detector):
             for requirement in self._parse_environment_yml_file(path, project_root):
                 name, version, metadata = requirement
                 register(name, version, str(path.relative_to(project_root)), metadata)
+                manifest_direct_names.add(canonicalize_name(name))
 
         for requirement in self._parse_local_metadata(project_root):
             name, version, metadata = requirement
             register(name, version, metadata.pop("source"), metadata)
+            manifest_direct_names.add(canonicalize_name(name))
+
+        # Build poetry.lock dependency graph for depth calculation
+        poetry_dep_graph: dict[str, list[str]] = {}
+        for path in find_files("poetry.lock"):
+            if self._is_excluded(path, project_root): continue
+            poetry_dep_graph.update(self._build_poetry_dependency_graph(path))
+
+        # Compute depths from the dependency graph
+        depth_map: dict[str, int] = {}
+        parent_map: dict[str, list[str]] = {}
+        if poetry_dep_graph:
+            depth_map, parent_map = self._compute_dependency_depths(
+                manifest_direct_names, poetry_dep_graph,
+            )
+
+        # Assign dependency depth metadata to all components
+        for (canonical_key, _version), component in specs.items():
+            canonical = canonical_key
+            is_direct = canonical in manifest_direct_names
+            # Determine source type
+            source_files = [s.get("source", "") for s in component.metadata.get("sources", [])]
+            has_manifest = any(
+                not str(s).endswith(".lock") and str(s) != "poetry.lock"
+                for s in source_files
+            )
+            has_lockfile = any(
+                str(s).endswith(".lock") or str(s) == "poetry.lock"
+                for s in source_files
+            )
+            if has_manifest and has_lockfile:
+                dep_source = "both"
+            elif has_lockfile:
+                dep_source = "lockfile"
+            else:
+                dep_source = "manifest"
+
+            component.metadata["is_direct"] = is_direct
+            component.metadata["dependency_depth"] = depth_map.get(canonical, 0 if is_direct else 1)
+            component.metadata["parent_packages"] = parent_map.get(canonical, [])
+            component.metadata["dependency_source"] = dep_source
 
         for component in specs.values():
             if isinstance(component.metadata.get("licenses"), set):
                 component.metadata["licenses"] = sorted(component.metadata["licenses"])
         return list(specs.values())
+
+    # -------------------------
+    # Dependency depth helpers
+    # -------------------------
+
+    def _collect_poetry_direct_names(self, pyproject_path: Path) -> set[str]:
+        """Collect canonical names of direct dependencies from pyproject.toml poetry sections."""
+        direct: set[str] = set()
+        if not pyproject_path.exists():
+            return direct
+        try:
+            data = tomllib.loads(pyproject_path.read_text(encoding="utf-8"))
+        except Exception:
+            return direct
+        poetry_data = data.get("tool", {}).get("poetry", {})
+        if not isinstance(poetry_data, dict):
+            return direct
+        for section_key in ("dependencies", "dev-dependencies"):
+            deps = poetry_data.get(section_key, {})
+            if isinstance(deps, dict):
+                for name in deps:
+                    if name.lower() != "python":
+                        direct.add(canonicalize_name(name))
+        for group_name, group_data in poetry_data.get("group", {}).items():
+            if isinstance(group_data, dict):
+                group_deps = group_data.get("dependencies", {})
+                if isinstance(group_deps, dict):
+                    for name in group_deps:
+                        if name.lower() != "python":
+                            direct.add(canonicalize_name(name))
+        # Also check project.dependencies
+        project_data = data.get("project", {})
+        if isinstance(project_data, dict):
+            for dep in project_data.get("dependencies", []) or []:
+                if isinstance(dep, str):
+                    try:
+                        req = Requirement(dep)
+                        direct.add(canonicalize_name(req.name))
+                    except Exception:
+                        pass
+        return direct
+
+    def _build_poetry_dependency_graph(self, lock_path: Path) -> dict[str, list[str]]:
+        """Build a dependency graph from poetry.lock [[package]] entries.
+
+        Returns a mapping of canonical package name -> list of canonical dependency names.
+        """
+        graph: dict[str, list[str]] = {}
+        if not lock_path.exists():
+            return graph
+        try:
+            data = tomllib.loads(lock_path.read_text(encoding="utf-8"))
+        except Exception:
+            return graph
+        packages = data.get("package", [])
+        for package in packages or []:
+            if not isinstance(package, dict):
+                continue
+            name = package.get("name")
+            if not isinstance(name, str):
+                continue
+            canonical = canonicalize_name(name)
+            deps: list[str] = []
+            requires = package.get("dependencies", {})
+            if isinstance(requires, dict):
+                for dep_name in requires:
+                    deps.append(canonicalize_name(dep_name))
+            graph[canonical] = deps
+        return graph
+
+    def _compute_dependency_depths(
+        self,
+        direct_names: set[str],
+        dep_graph: dict[str, list[str]],
+    ) -> tuple[dict[str, int], dict[str, list[str]]]:
+        """BFS from direct dependencies to compute depth and parent_packages."""
+        from collections import deque
+
+        depth_map: dict[str, int] = {}
+        parent_map: dict[str, list[str]] = {}
+
+        # Initialize direct deps at depth 0
+        queue: deque[str] = deque()
+        for name in direct_names:
+            if name in dep_graph or name in direct_names:
+                depth_map[name] = 0
+                parent_map[name] = []
+                queue.append(name)
+
+        # BFS to discover transitive deps
+        while queue:
+            current = queue.popleft()
+            current_depth = depth_map[current]
+            for child in dep_graph.get(current, []):
+                if child not in depth_map:
+                    depth_map[child] = current_depth + 1
+                    parent_map[child] = [current]
+                    queue.append(child)
+                else:
+                    # Already visited — add parent if not already tracked
+                    if current not in parent_map.get(child, []):
+                        parent_map.setdefault(child, []).append(current)
+
+        return depth_map, parent_map
 
     # -------------------------
     # Individual manifest parsers

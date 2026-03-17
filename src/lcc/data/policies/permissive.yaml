@@ -52,3 +52,10 @@ contexts:
     dual_license_preference: avoid_copyleft
     explanation:
       - Avoids copyleft license paths when permissive alternatives exist.
+
+compatibility:
+  project_license: null
+  check_contamination: true
+  check_agpl_saas: true
+  check_pairwise: true
+  check_weak_copyleft: true

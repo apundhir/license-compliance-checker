@@ -62,6 +62,13 @@ class MavenDetector(Detector):
                 source_entry["project_root"] = str(project_root)
                 components[key].metadata.setdefault("sources", []).append(source_entry)
 
+        # Assign dependency depth metadata — pom.xml is manifest only, no lock file
+        for component in components.values():
+            component.metadata["is_direct"] = True
+            component.metadata["dependency_depth"] = 0
+            component.metadata["parent_packages"] = []
+            component.metadata["dependency_source"] = "manifest"
+
         return list(components.values())
 
     def _walk_poms(self, project_root: Path) -> Iterable[Path]:
