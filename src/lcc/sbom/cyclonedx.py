@@ -44,6 +44,7 @@ from cyclonedx.output.xml import XmlV1Dot5
 from packageurl import PackageURL
 
 from lcc.models import Component, ComponentType, ScanResult
+from lcc.sbom.regulatory_properties import get_regulatory_properties
 
 
 class CycloneDXGenerator:
@@ -360,6 +361,16 @@ class CycloneDXGenerator:
                         value=str(value),
                     )
                 )
+
+        # Add regulatory properties for AI/ML components
+        regulatory_props = get_regulatory_properties(component, comp_result)
+        for prop_name, prop_value in regulatory_props.items():
+            props.append(
+                Property(
+                    name=prop_name,
+                    value=prop_value,
+                )
+            )
 
         return props
 

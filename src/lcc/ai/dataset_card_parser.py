@@ -20,6 +20,10 @@ Supports:
 - Hugging Face dataset cards (YAML frontmatter in README.md)
 - Dataset metadata files
 - Custom dataset card formats
+
+Enhanced to extract provenance and regulatory-relevant information from
+markdown sections (data sources, collection methodology, PII/privacy info)
+in addition to YAML frontmatter.
 """
 
 from __future__ import annotations
@@ -31,6 +35,45 @@ try:
     import yaml
 except ImportError:
     yaml = None
+
+
+def _strip_markdown(text: str) -> str:
+    """Strip common markdown formatting from text."""
+    text = re.sub(r'\[([^\]]+)\]\([^\)]+\)', r'\1', text)
+    text = re.sub(r'[*_`]', '', text)
+    text = re.sub(r'\n{3,}', '\n\n', text)
+    return text.strip()
+
+
+def _extract_section(content: str, heading_names: list[str]) -> str | None:
+    """Extract the body text of a markdown section by heading name.
+
+    Searches for headings at level 2 (``##``) or level 3 (``###``).
+    The section body extends until the next heading of equal or higher
+    level or the end of the document.
+
+    Args:
+        content: Full markdown content (after frontmatter removal).
+        heading_names: List of heading strings to search for (case-insensitive).
+
+    Returns:
+        The section body text, or ``None`` if the section is not found.
+    """
+    for name in heading_names:
+        pattern = (
+            r'(?:^|\n)'
+            r'(#{2,3})\s+'
+            + re.escape(name)
+            + r'\s*\n'
+            r'(.*?)'
+            r'(?=\n#{1,3}\s|\Z)'
+        )
+        match = re.search(pattern, content, re.IGNORECASE | re.DOTALL)
+        if match:
+            body = match.group(2).strip()
+            if body:
+                return body
+    return None
 
 
 class DatasetCardInfo:
@@ -48,6 +91,10 @@ class DatasetCardInfo:
         annotations_creators: list[str] = None,
         source_datasets: list[str] = None,
         raw_metadata: dict = None,
+        # --- Enhanced fields for regulatory compliance ---
+        data_sources: list[str] = None,
+        collection_method: str | None = None,
+        privacy_info: str | None = None,
     ):
         self.license = license
         self.tags = tags or []
@@ -59,10 +106,14 @@ class DatasetCardInfo:
         self.annotations_creators = annotations_creators or []
         self.source_datasets = source_datasets or []
         self.raw_metadata = raw_metadata or {}
+        # Enhanced fields
+        self.data_sources = data_sources or []
+        self.collection_method = collection_method
+        self.privacy_info = privacy_info
 
     def to_dict(self) -> dict:
         """Convert to dictionary."""
-        return {
+        result = {
             "license": self.license,
             "tags": self.tags,
             "languages": self.languages,
@@ -74,6 +125,14 @@ class DatasetCardInfo:
             "source_datasets": self.source_datasets,
             "raw_metadata": self.raw_metadata,
         }
+        # Include enhanced fields only when populated for backward compat.
+        if self.data_sources:
+            result["data_sources"] = self.data_sources
+        if self.collection_method:
+            result["collection_method"] = self.collection_method
+        if self.privacy_info:
+            result["privacy_info"] = self.privacy_info
+        return result
 
 
 class DatasetCardParser:
@@ -205,6 +264,13 @@ class DatasetCardParser:
         if not creators:
             creators = self._extract_creators(content)
 
+        # --- Extract enhanced markdown sections ---
+        markdown_body = self._get_markdown_body(content)
+
+        data_sources = self._extract_data_sources(markdown_body)
+        collection_method = self._extract_collection_method(markdown_body)
+        privacy_info = self._extract_privacy_info(markdown_body)
+
         return DatasetCardInfo(
             license=license_str,
             tags=tags,
@@ -216,6 +282,9 @@ class DatasetCardParser:
             annotations_creators=annotations_creators,
             source_datasets=source_datasets,
             raw_metadata=frontmatter,
+            data_sources=data_sources,
+            collection_method=collection_method,
+            privacy_info=privacy_info,
         )
 
     def _parse_markdown_format(self, content: str) -> DatasetCardInfo | None:
@@ -258,10 +327,18 @@ class DatasetCardParser:
         # Try to extract dataset name from title
         dataset_name = self._extract_dataset_name(content)
 
+        # --- Extract enhanced markdown sections ---
+        data_sources = self._extract_data_sources(content)
+        collection_method = self._extract_collection_method(content)
+        privacy_info = self._extract_privacy_info(content)
+
         return DatasetCardInfo(
             license=license_value,
             creators=creators,
             dataset_name=dataset_name,
+            data_sources=data_sources,
+            collection_method=collection_method,
+            privacy_info=privacy_info,
         )
 
     def _extract_creators(self, content: str) -> list[str]:
@@ -315,6 +392,112 @@ class DatasetCardParser:
             name = re.sub(r'\s+Dataset$', '', name, flags=re.IGNORECASE)
             return name
 
+        return None
+
+    # ------------------------------------------------------------------
+    # Enhanced markdown section extraction
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _get_markdown_body(content: str) -> str:
+        """Return the markdown content after YAML frontmatter."""
+        stripped = re.sub(
+            r'^---\s*\n.*?\n---\s*\n', '', content, count=1, flags=re.DOTALL
+        )
+        return stripped
+
+    def _extract_data_sources(self, content: str) -> list[str]:
+        """Extract data source / provenance information from markdown.
+
+        Looks for sections describing where the data comes from, and also
+        scans for URLs and well-known source references.
+        """
+        sources: list[str] = []
+
+        section = _extract_section(content, [
+            "Data Source",
+            "Data Sources",
+            "Source Data",
+            "Dataset Sources",
+            "Data Collection",
+            "Data Origin",
+            "Provenance",
+            "Source",
+            "Sources",
+        ])
+
+        search_text = section or ""
+
+        # Also look for a "Dataset Description" or "Dataset Summary" section
+        # which often mentions sources.
+        for alt_heading in ["Dataset Description", "Dataset Summary", "Description"]:
+            alt_section = _extract_section(content, [alt_heading])
+            if alt_section:
+                search_text += "\n" + alt_section
+
+        if not search_text.strip():
+            return []
+
+        # Capture markdown links as data sources
+        link_urls = re.findall(r'\[([^\]]+)\]\(([^\)]+)\)', search_text)
+        for _text, url in link_urls:
+            sources.append(url)
+
+        # Capture bare URLs
+        bare_urls = re.findall(r'https?://[^\s\)>]+', search_text)
+        for url in bare_urls:
+            if url not in sources:
+                sources.append(url)
+
+        # Capture bullet-point items from the source section (if any)
+        if section:
+            items = re.findall(r'[-*]\s+(.+)', section)
+            for item in items:
+                cleaned = _strip_markdown(item.strip())
+                if cleaned and cleaned not in sources:
+                    sources.append(cleaned)
+
+        # Deduplicate while preserving order
+        seen: set[str] = set()
+        unique: list[str] = []
+        for s in sources:
+            if s not in seen:
+                seen.add(s)
+                unique.append(s)
+
+        return unique
+
+    def _extract_collection_method(self, content: str) -> str | None:
+        """Extract data collection methodology description."""
+        section = _extract_section(content, [
+            "Collection Method",
+            "Collection Methodology",
+            "Data Collection",
+            "Collection Process",
+            "Data Collection and Processing",
+            "Curation Rationale",
+            "Data Gathering",
+            "Initial Data Collection",
+            "Initial Data Collection and Normalization",
+        ])
+        if section:
+            return _strip_markdown(section)
+        return None
+
+    def _extract_privacy_info(self, content: str) -> str | None:
+        """Extract PII / privacy information from markdown sections."""
+        section = _extract_section(content, [
+            "Personal and Sensitive Information",
+            "Privacy",
+            "PII",
+            "Personally Identifiable Information",
+            "Privacy Information",
+            "Data Privacy",
+            "Sensitive Information",
+            "Personal Information",
+        ])
+        if section:
+            return _strip_markdown(section)
         return None
 
 

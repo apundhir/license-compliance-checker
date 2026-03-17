@@ -36,6 +36,7 @@ from slowapi.util import get_remote_address
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from lcc.api.auth_routes import create_auth_router
+from lcc.api.regulatory_routes import router as regulatory_router
 from lcc.api.warnings import WarningsSummary
 from lcc.auth.core import User, UserRole, get_current_active_user, require_role
 from lcc.auth.repository import UserRepository
@@ -168,6 +169,9 @@ def create_app(config_path: Path | None = None) -> FastAPI:
     # Mount Auth
     auth_router = create_auth_router(user_repository)
     app.include_router(auth_router)
+
+    # Mount Regulatory routes
+    app.include_router(regulatory_router)
 
     @app.get("/health")
     async def health() -> dict[str, str]:

@@ -29,6 +29,8 @@ from packageurl import PackageURL
 from spdx_tools.spdx.model import (
     Actor,
     ActorType,
+    Annotation,
+    AnnotationType,
     Checksum,
     ChecksumAlgorithm,
     CreationInfo,
@@ -42,7 +44,8 @@ from spdx_tools.spdx.model import (
 )
 from spdx_tools.spdx.writer.write_anything import write_file
 
-from lcc.models import Component, ComponentType, ScanResult
+from lcc.models import Component, ComponentResult, ComponentType, ScanResult
+from lcc.sbom.regulatory_properties import get_regulatory_annotation_text
 
 
 class SPDXGenerator:
@@ -153,6 +156,21 @@ class SPDXGenerator:
                 )
             )
 
+            # Add regulatory annotation for AI/ML components
+            comp_result = next(
+                (
+                    cr
+                    for cr in scan_result.component_results
+                    if cr.component == component
+                ),
+                None,
+            )
+            annotation = self._create_regulatory_annotation(
+                component, comp_result, package.spdx_id
+            )
+            if annotation is not None:
+                document.annotations.append(annotation)
+
         return document
 
     def _create_creation_info(self, creator: str | None) -> CreationInfo:
@@ -234,7 +252,7 @@ class SPDXGenerator:
         if checksums:
             package.checksums = checksums
 
-        # Add external references
+        # Add external references (including regulatory refs for AI/ML)
         external_refs = self._get_external_refs(component)
         if external_refs:
             package.external_references = external_refs
@@ -317,7 +335,46 @@ class SPDXGenerator:
                 )
             )
 
+        # Add model card reference for AI/ML components
+        if component.type in (ComponentType.AI_MODEL, ComponentType.DATASET):
+            model_card_url = component.metadata.get("model_card_url")
+            if model_card_url:
+                refs.append(
+                    ExternalPackageRef(
+                        category=ExternalPackageRefCategory.OTHER,
+                        reference_type="model-card",
+                        locator=str(model_card_url),
+                        comment="Model card or dataset card URL",
+                    )
+                )
+
         return refs
+
+    def _create_regulatory_annotation(
+        self,
+        component: Component,
+        component_result: ComponentResult | None,
+        spdx_element_id: str,
+    ) -> Annotation | None:
+        """
+        Create a REVIEW annotation with regulatory metadata for AI/ML components.
+
+        Returns ``None`` for non-AI component types.
+        """
+        annotation_text = get_regulatory_annotation_text(component, component_result)
+        if annotation_text is None:
+            return None
+
+        return Annotation(
+            spdx_id=spdx_element_id,
+            annotation_type=AnnotationType.REVIEW,
+            annotator=Actor(
+                actor_type=ActorType.TOOL,
+                name=f"{self.tool_name}-{self.tool_version}",
+            ),
+            annotation_date=datetime.now(UTC),
+            annotation_comment=annotation_text,
+        )
 
     def _create_purl(self, component: Component) -> PackageURL | None:
         """Create Package URL for component."""

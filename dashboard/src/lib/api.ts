@@ -206,5 +206,18 @@ export const evaluatePolicy = async (policyId: string, scanResult: any) => {
   return response.data;
 };
 
+// Regulatory / EU AI Act
+export const assessRegulatory = async (scanId: string) => {
+  const response = await api.get(`/regulatory/assess/${scanId}`);
+  return response.data;
+};
+
+export const downloadCompliancePack = async (scanId: string) => {
+  const response = await api.get(`/regulatory/compliance-pack/${scanId}`, {
+    responseType: 'blob',
+  });
+  return response.data;
+};
+
 // Export all
 export default api;

@@ -1,0 +1,262 @@
+---
+# NIST AI Risk Management Framework Aligned Policy
+# Maps license compliance to NIST AI RMF 1.0 core functions:
+# Govern, Map, Measure, Manage.
+
+name: nist-ai-rmf
+version: "1.0"
+description: >-
+  NIST AI Risk Management Framework aligned policy for IP compliance
+  governance. Provides license compliance contexts mapped to NIST AI
+  RMF functions, with tiered controls for general governance, high-risk
+  AI systems, and US federal government deployments.
+disclaimer: >-
+  This policy provides license compliance guidance aligned with the
+  NIST AI Risk Management Framework (AI RMF 1.0, NIST AI 100-1) but
+  does not constitute legal advice. Organisations should consult legal
+  counsel and their own risk management processes for final compliance
+  decisions. Federal deployments must additionally comply with
+  applicable FAR/DFARS clauses and agency-specific open-source policies.
+default_context: govern
+
+contexts:
+  # ---------------------------------------------------------------
+  # NIST AI RMF Govern function — IP compliance governance
+  # ---------------------------------------------------------------
+  govern:
+    description: >-
+      NIST AI RMF Govern function — IP compliance governance.
+      Establishes the baseline license posture for AI systems,
+      cultivating a risk-aware culture around intellectual property
+      and open-source component usage.
+    allow:
+      - Apache-2.0
+      - MIT
+      - BSD-*
+      - ISC
+      - CC0-1.0
+      - CC-BY-4.0
+      - PSF-2.0
+      - Zlib
+    deny:
+      - SSPL-1.0
+      - AGPL-3.0
+      - Proprietary-*
+    review:
+      - GPL-*
+      - LGPL-*
+      - MPL-*
+      - CC-BY-SA-*
+      - CC-BY-NC-*
+      - openrail*
+      - llama-*
+      - RAIL-*
+    deny_reasons:
+      SSPL-1.0: >-
+        Service-level source disclosure requirements create unmanageable
+        risk for AI system governance and are not OSI-approved.
+      AGPL-3.0: >-
+        Network copyleft obligations require executive-level risk
+        acceptance under the Govern function framework.
+      Proprietary-*: >-
+        Proprietary licenses without negotiated terms prevent adequate
+        IP risk documentation and governance oversight.
+    review_reasons:
+      GPL-*: >-
+        Strong copyleft terms require risk assessment for derivative
+        work scope in AI model integration.
+      LGPL-*: >-
+        Weak copyleft boundaries must be documented in governance
+        records for dynamic linking scenarios.
+      MPL-*: >-
+        File-level copyleft scope needs governance documentation.
+      CC-BY-SA-*: >-
+        ShareAlike obligations may propagate to AI system outputs;
+        assess under Govern function risk framework.
+      CC-BY-NC-*: >-
+        Non-commercial restrictions require validation against
+        organisational AI deployment objectives.
+      openrail*: >-
+        OpenRAIL use-based restrictions require governance-level
+        documentation of acceptable use boundaries.
+      llama-*: >-
+        Meta Llama license terms include user thresholds and acceptable
+        use policies requiring governance review.
+      RAIL-*: >-
+        Responsible AI License restrictions must be documented in
+        governance risk registers.
+    dual_license_preference: most_permissive
+    explanation:
+      - Cross-cutting governance function informing all AI risk decisions.
+      - Unknown licenses default to review for risk assessment triage.
+      - Prefer permissive licenses to minimise governance overhead.
+
+  # ---------------------------------------------------------------
+  # High-risk AI systems requiring strict IP controls
+  # ---------------------------------------------------------------
+  high_risk:
+    description: >-
+      High-risk AI systems requiring strict IP controls. Applies
+      elevated scrutiny aligned with NIST AI RMF risk tiering for
+      systems affecting safety, rights, or critical infrastructure.
+    allow:
+      # Only clearly permissive licenses for high-risk deployments
+      - Apache-2.0
+      - MIT
+      - BSD-2-Clause
+      - BSD-3-Clause
+      - CC0-1.0
+    deny:
+      # Strong copyleft creates unacceptable risk for high-risk systems
+      - GPL-*
+      - AGPL-*
+      - SSPL-*
+      # Non-commercial and no-derivatives block high-risk deployment needs
+      - CC-BY-NC-*
+      - CC-BY-ND-*
+      - CC-BY-NC-ND-*
+      # Restricted RAIL licenses incompatible with high-risk controls
+      - RAIL-*Restricted
+      # Proprietary without negotiated terms
+      - Proprietary-*
+    review:
+      - LGPL-*
+      - MPL-*
+      - CC-BY-SA-*
+      - CC-BY-4.0
+      - openrail*
+      - llama-*
+    deny_reasons:
+      GPL-*: >-
+        Strong copyleft obligations create unacceptable legal risk for
+        high-risk AI systems where IP chain must be fully controlled.
+      AGPL-*: >-
+        Network copyleft source disclosure requirements are incompatible
+        with high-risk system security and IP protection requirements.
+      SSPL-*: >-
+        Service-source disclosure conflicts with high-risk system
+        deployment controls and is not OSI-approved.
+      CC-BY-NC-*: >-
+        Non-commercial restrictions prevent deployment in high-risk
+        commercial or government contexts.
+      CC-BY-ND-*: >-
+        No-derivatives clause prevents necessary system modifications
+        and safety updates for high-risk AI systems.
+      CC-BY-NC-ND-*: >-
+        Combined restrictions entirely incompatible with high-risk
+        AI system lifecycle requirements.
+      RAIL-*Restricted: >-
+        Usage-restricted AI models carry unquantifiable risk for
+        high-risk deployments affecting safety or rights.
+      Proprietary-*: >-
+        Proprietary licenses without negotiated terms prevent adequate
+        risk management for high-risk systems.
+    review_reasons:
+      LGPL-*: >-
+        Weak copyleft boundaries must be verified for high-risk system
+        component isolation requirements.
+      MPL-*: >-
+        File-level copyleft scope needs assessment against high-risk
+        system modification requirements.
+      CC-BY-SA-*: >-
+        ShareAlike obligations need evaluation for high-risk system
+        output licensing implications.
+      CC-BY-4.0: >-
+        Attribution requirements must be documented in high-risk system
+        compliance records.
+      openrail*: >-
+        OpenRAIL use restrictions require risk assessment for high-risk
+        deployment contexts.
+      llama-*: >-
+        Meta Llama acceptable use policies and user thresholds must be
+        evaluated against high-risk system requirements.
+    dual_license_preference: avoid_copyleft
+    explanation:
+      - Strictest tier for AI systems with safety or rights implications.
+      - Unknown licenses are treated as violations for maximum risk control.
+      - Only clearly permissive licenses are pre-approved.
+
+  # ---------------------------------------------------------------
+  # US Federal government AI deployments
+  # ---------------------------------------------------------------
+  federal:
+    description: >-
+      US Federal government AI deployments. Aligns with NIST AI RMF
+      guidance for federal agencies, Executive Order 14110 on Safe,
+      Secure, and Trustworthy AI, and OMB memoranda on government
+      use of open-source software and AI.
+    allow:
+      - Apache-2.0
+      - MIT
+      - BSD-2-Clause
+      - BSD-3-Clause
+      - CC0-1.0
+      - ISC
+      - Unlicense
+      - CC-BY-4.0
+    deny:
+      # GPL-3.0 anti-tivoization and patent provisions create federal
+      # procurement complications
+      - GPL-3.0
+      - AGPL-*
+      - SSPL-*
+      # Non-commercial restrictions incompatible with government mission
+      - CC-BY-NC-*
+      - CC-BY-NC-ND-*
+      # Proprietary without negotiated FAR/DFARS terms
+      - Proprietary-*
+    review:
+      - GPL-2.0
+      - LGPL-*
+      - MPL-*
+      - CC-BY-SA-*
+      - CC-BY-ND-*
+      # AI model licenses need agency-level review
+      - openrail*
+      - llama-*
+    deny_reasons:
+      GPL-3.0: >-
+        GPL-3.0 anti-tivoization and patent retaliation provisions
+        create procurement complications for federal agencies.
+      AGPL-*: >-
+        Network copyleft obligations conflict with federal hosting
+        requirements and FedRAMP compliance.
+      SSPL-*: >-
+        Service-source disclosure requirements are incompatible with
+        federal system security requirements and are not OSI-approved.
+      CC-BY-NC-*: >-
+        Non-commercial restrictions conflict with government mission
+        and public service delivery.
+      CC-BY-NC-ND-*: >-
+        Combined non-commercial and no-derivatives restrictions are
+        entirely incompatible with federal deployment requirements.
+      Proprietary-*: >-
+        Proprietary licenses require negotiated FAR/DFARS terms;
+        unlicensed proprietary software is denied by default.
+    review_reasons:
+      GPL-2.0: >-
+        GPL-2.0 requires agency-level review of redistribution
+        workflow and security posture for federal systems.
+      LGPL-*: >-
+        Verify dynamic linking strategy meets federal software
+        assurance requirements.
+      MPL-*: >-
+        Assess file-level copyleft scope against federal change
+        management processes.
+      CC-BY-SA-*: >-
+        ShareAlike obligations need evaluation for government
+        publication and data sharing requirements.
+      CC-BY-ND-*: >-
+        No-derivatives clause needs assessment against federal
+        system modification and customisation needs.
+      openrail*: >-
+        OpenRAIL use-based restrictions require agency-level policy
+        review and acceptable use documentation.
+      llama-*: >-
+        Meta Llama terms require agency-level review for user
+        threshold compliance and acceptable use alignment.
+    dual_license_preference: most_permissive
+    explanation:
+      - Aligned with federal open-source software guidance and EO 14110.
+      - Unknown licenses default to review for agency risk triage.
+      - Unlicense is permitted as federal works are often public domain.

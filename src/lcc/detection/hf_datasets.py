@@ -126,6 +126,14 @@ class HuggingFaceDatasetDetector(Detector):
         if card_info and card_info.get("task_categories"):
             metadata["task_categories"] = card_info["task_categories"]
 
+        # Add enhanced dataset card fields (regulatory/EU AI Act relevant)
+        if card_info and card_info.get("data_sources"):
+            metadata["data_sources"] = card_info["data_sources"]
+        if card_info and card_info.get("collection_method"):
+            metadata["collection_method"] = card_info["collection_method"]
+        if card_info and card_info.get("privacy_info"):
+            metadata["privacy_info"] = card_info["privacy_info"]
+
         # Add dataset info details
         if dataset_info:
             metadata["dataset_size"] = dataset_info.get("dataset_size")

@@ -23,6 +23,12 @@
 - [ ] Docs site live on GitHub Pages
 - [ ] Benchmark numbers public in README
 
+**Manual Steps TODO (code done, needs human action):**
+- [ ] PyPI: Configure OIDC trusted publisher OR add PYPI_TOKEN secret, then `git tag v1.0.0 && git push origin v1.0.0`
+- [ ] GitHub Action Marketplace: Create GitHub release with "Publish to Marketplace" checked
+- [ ] GitHub Pages: Enable in repo Settings → Pages → Source: gh-pages branch
+- [ ] Benchmarks: Run `python -m benchmarks.run_benchmarks --all -v` and commit results
+
 ---
 
 ## Phase 2: AI/ML & Regulatory — The Moat (Weeks 3-5)

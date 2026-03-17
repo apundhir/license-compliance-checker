@@ -128,6 +128,24 @@ class HuggingFaceDetector(Detector):
         if card_info and card_info.get("datasets"):
             metadata["datasets"] = card_info["datasets"]
 
+        # Add enhanced model card fields (regulatory/EU AI Act relevant)
+        if card_info and card_info.get("training_data_sources"):
+            metadata["training_data_sources"] = card_info["training_data_sources"]
+        if card_info and card_info.get("training_data_description"):
+            metadata["training_data_description"] = card_info["training_data_description"]
+        if card_info and card_info.get("limitations"):
+            metadata["limitations"] = card_info["limitations"]
+        if card_info and card_info.get("evaluation_metrics"):
+            metadata["evaluation_metrics"] = card_info["evaluation_metrics"]
+        if card_info and card_info.get("intended_uses"):
+            metadata["intended_uses"] = card_info["intended_uses"]
+        if card_info and card_info.get("out_of_scope_uses"):
+            metadata["out_of_scope_uses"] = card_info["out_of_scope_uses"]
+        if card_info and card_info.get("environmental_impact"):
+            metadata["environmental_impact"] = card_info["environmental_impact"]
+        if card_info and card_info.get("use_restrictions"):
+            metadata["use_restrictions"] = card_info["use_restrictions"]
+
         # Add repository URL if this looks like a cloned repo
         if (path / ".git").exists():
             metadata["repository_url"] = self._extract_git_url(path)

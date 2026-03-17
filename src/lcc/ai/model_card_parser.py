@@ -20,17 +20,70 @@ Supports:
 - Hugging Face model cards (YAML frontmatter in README.md)
 - Papers with Code model cards
 - Custom model card formats
+
+Enhanced to extract regulatory-relevant information from markdown sections
+(training data, limitations, evaluation results, intended uses,
+environmental impact, and use restrictions) in addition to YAML frontmatter.
 """
 
 from __future__ import annotations
 
 import re
 from pathlib import Path
+from typing import Any
 
 try:
     import yaml
 except ImportError:
     yaml = None
+
+
+def _strip_markdown(text: str) -> str:
+    """Strip common markdown formatting from text.
+
+    Converts links ``[text](url)`` to just ``text``, removes bold/italic
+    markers and inline code backticks, and collapses excessive whitespace.
+    """
+    # Convert markdown links to just the link text
+    text = re.sub(r'\[([^\]]+)\]\([^\)]+\)', r'\1', text)
+    # Remove bold/italic/code markers
+    text = re.sub(r'[*_`]', '', text)
+    # Collapse multiple blank lines into one
+    text = re.sub(r'\n{3,}', '\n\n', text)
+    return text.strip()
+
+
+def _extract_section(content: str, heading_names: list[str]) -> str | None:
+    """Extract the body text of a markdown section by heading name.
+
+    Searches for headings at level 2 (``##``) or level 3 (``###``).  The
+    section body extends until the next heading of equal or higher level or
+    the end of the document.
+
+    Args:
+        content: Full markdown content (after frontmatter removal).
+        heading_names: List of heading strings to search for (case-insensitive).
+
+    Returns:
+        The section body text (stripped of leading/trailing whitespace), or
+        ``None`` if the section is not found.
+    """
+    for name in heading_names:
+        # Match ## or ### headings (with optional trailing whitespace / anchors)
+        pattern = (
+            r'(?:^|\n)'            # start of string or newline
+            r'(#{2,3})\s+'         # heading level (capture to know depth)
+            + re.escape(name)      # heading text
+            + r'\s*\n'             # optional trailing whitespace + newline
+            r'(.*?)'              # body (non-greedy)
+            r'(?=\n#{1,3}\s|\Z)'  # stop at next heading of level 1-3 or end
+        )
+        match = re.search(pattern, content, re.IGNORECASE | re.DOTALL)
+        if match:
+            body = match.group(2).strip()
+            if body:
+                return body
+    return None
 
 
 class ModelCardInfo:
@@ -47,6 +100,15 @@ class ModelCardInfo:
         model_name: str | None = None,
         authors: list[str] = None,
         raw_metadata: dict = None,
+        # --- Enhanced fields for regulatory/EU AI Act compliance ---
+        training_data_sources: list[str] = None,
+        training_data_description: str | None = None,
+        limitations: str | None = None,
+        evaluation_metrics: dict[str, Any] = None,
+        intended_uses: str | None = None,
+        out_of_scope_uses: str | None = None,
+        environmental_impact: dict[str, str] = None,
+        use_restrictions: list[str] = None,
     ):
         self.license = license
         self.tags = tags or []
@@ -57,10 +119,19 @@ class ModelCardInfo:
         self.model_name = model_name
         self.authors = authors or []
         self.raw_metadata = raw_metadata or {}
+        # Enhanced fields
+        self.training_data_sources = training_data_sources or []
+        self.training_data_description = training_data_description
+        self.limitations = limitations
+        self.evaluation_metrics = evaluation_metrics or {}
+        self.intended_uses = intended_uses
+        self.out_of_scope_uses = out_of_scope_uses
+        self.environmental_impact = environmental_impact or {}
+        self.use_restrictions = use_restrictions or []
 
     def to_dict(self) -> dict:
         """Convert to dictionary."""
-        return {
+        result = {
             "license": self.license,
             "tags": self.tags,
             "datasets": self.datasets,
@@ -71,6 +142,25 @@ class ModelCardInfo:
             "authors": self.authors,
             "raw_metadata": self.raw_metadata,
         }
+        # Include enhanced fields only when populated so that callers that
+        # rely on the original dict shape are not affected by empty extras.
+        if self.training_data_sources:
+            result["training_data_sources"] = self.training_data_sources
+        if self.training_data_description:
+            result["training_data_description"] = self.training_data_description
+        if self.limitations:
+            result["limitations"] = self.limitations
+        if self.evaluation_metrics:
+            result["evaluation_metrics"] = self.evaluation_metrics
+        if self.intended_uses:
+            result["intended_uses"] = self.intended_uses
+        if self.out_of_scope_uses:
+            result["out_of_scope_uses"] = self.out_of_scope_uses
+        if self.environmental_impact:
+            result["environmental_impact"] = self.environmental_impact
+        if self.use_restrictions:
+            result["use_restrictions"] = self.use_restrictions
+        return result
 
 
 class ModelCardParser:
@@ -189,6 +279,19 @@ class ModelCardParser:
         # Try to extract authors from content
         authors = self._extract_authors(content)
 
+        # --- Extract enhanced markdown sections ---
+        markdown_body = self._get_markdown_body(content)
+
+        training_data_sources, training_data_description = (
+            self._extract_training_data(markdown_body)
+        )
+        limitations = self._extract_limitations(markdown_body)
+        evaluation_metrics = self._extract_evaluation_metrics(markdown_body)
+        intended_uses = self._extract_intended_uses(markdown_body)
+        out_of_scope_uses = self._extract_out_of_scope_uses(markdown_body)
+        environmental_impact = self._extract_environmental_impact(markdown_body)
+        use_restrictions = self._extract_use_restrictions(markdown_body)
+
         return ModelCardInfo(
             license=license_str,
             tags=tags,
@@ -199,6 +302,14 @@ class ModelCardParser:
             model_name=model_name,
             authors=authors,
             raw_metadata=frontmatter,
+            training_data_sources=training_data_sources,
+            training_data_description=training_data_description,
+            limitations=limitations,
+            evaluation_metrics=evaluation_metrics,
+            intended_uses=intended_uses,
+            out_of_scope_uses=out_of_scope_uses,
+            environmental_impact=environmental_impact,
+            use_restrictions=use_restrictions,
         )
 
     def _parse_markdown_format(self, content: str) -> ModelCardInfo | None:
@@ -237,9 +348,28 @@ class ModelCardParser:
         # Extract authors
         authors = self._extract_authors(content)
 
+        # --- Extract enhanced markdown sections ---
+        training_data_sources, training_data_description = (
+            self._extract_training_data(content)
+        )
+        limitations = self._extract_limitations(content)
+        evaluation_metrics = self._extract_evaluation_metrics(content)
+        intended_uses = self._extract_intended_uses(content)
+        out_of_scope_uses = self._extract_out_of_scope_uses(content)
+        environmental_impact = self._extract_environmental_impact(content)
+        use_restrictions = self._extract_use_restrictions(content)
+
         return ModelCardInfo(
             license=license_value,
             authors=authors,
+            training_data_sources=training_data_sources,
+            training_data_description=training_data_description,
+            limitations=limitations,
+            evaluation_metrics=evaluation_metrics,
+            intended_uses=intended_uses,
+            out_of_scope_uses=out_of_scope_uses,
+            environmental_impact=environmental_impact,
+            use_restrictions=use_restrictions,
         )
 
     def _extract_authors(self, content: str) -> list[str]:
@@ -275,6 +405,280 @@ class ModelCardParser:
                 break
 
         return authors[:5]  # Limit to 5 authors
+
+    # ------------------------------------------------------------------
+    # Enhanced markdown section extraction
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _get_markdown_body(content: str) -> str:
+        """Return the markdown content after YAML frontmatter."""
+        # Remove YAML frontmatter
+        stripped = re.sub(r'^---\s*\n.*?\n---\s*\n', '', content, count=1, flags=re.DOTALL)
+        return stripped
+
+    # --- Training Data ---------------------------------------------------
+
+    def _extract_training_data(
+        self, content: str
+    ) -> tuple[list[str], str | None]:
+        """Extract training data information from markdown sections.
+
+        Looks for sections like "Training Data", "Training Details",
+        "Training Dataset", "Data", and "Dataset".
+
+        Returns:
+            Tuple of (training_data_sources, training_data_description).
+        """
+        section = _extract_section(content, [
+            "Training Data",
+            "Training Details",
+            "Training Dataset",
+            "Training",
+            "Data",
+            "Dataset",
+        ])
+        if not section:
+            return [], None
+
+        description = _strip_markdown(section)
+
+        # Extract dataset names / references mentioned in the text.
+        sources: list[str] = []
+
+        # Capture HuggingFace-style dataset references (org/dataset)
+        hf_refs = re.findall(
+            r'(?:huggingface\.co/datasets/|datasets/)([A-Za-z0-9_-]+/[A-Za-z0-9_.-]+)',
+            section,
+        )
+        sources.extend(hf_refs)
+
+        # Capture markdown links as data sources (URL form)
+        link_urls = re.findall(r'\[([^\]]+)\]\(([^\)]+)\)', section)
+        for _text, url in link_urls:
+            sources.append(url)
+
+        # Capture well-known dataset names mentioned explicitly
+        # (e.g., "trained on Wikipedia", "BookCorpus", "CommonCrawl")
+        known_datasets = [
+            "Wikipedia", "BookCorpus", "CommonCrawl", "C4", "The Pile",
+            "OpenWebText", "RedPajama", "LAION", "ImageNet", "COCO",
+            "SQuAD", "GLUE", "SuperGLUE", "MNLI", "WMT",
+        ]
+        for ds in known_datasets:
+            if re.search(r'\b' + re.escape(ds) + r'\b', section, re.IGNORECASE):
+                sources.append(ds)
+
+        # Capture bare URLs
+        bare_urls = re.findall(r'https?://[^\s\)>]+', section)
+        for url in bare_urls:
+            if url not in sources:
+                sources.append(url)
+
+        # Deduplicate while preserving order
+        seen: set[str] = set()
+        unique_sources: list[str] = []
+        for s in sources:
+            if s not in seen:
+                seen.add(s)
+                unique_sources.append(s)
+
+        return unique_sources, description
+
+    # --- Limitations -----------------------------------------------------
+
+    def _extract_limitations(self, content: str) -> str | None:
+        """Extract known limitations from markdown sections."""
+        section = _extract_section(content, [
+            "Known Limitations",
+            "Limitations",
+            "Limitations and Biases",
+            "Limitations and Bias",
+            "Risks, Limitations and Biases",
+            "Known Issues",
+            "Caveats and Recommendations",
+        ])
+        if section:
+            return _strip_markdown(section)
+        return None
+
+    # --- Evaluation Results ----------------------------------------------
+
+    def _extract_evaluation_metrics(self, content: str) -> dict[str, Any]:
+        """Extract evaluation/benchmark results from markdown sections.
+
+        Parses patterns like ``MMLU: 79.2%``, ``| HellaSwag | 85.1 |``,
+        and ``**Accuracy**: 0.93``.
+        """
+        section = _extract_section(content, [
+            "Evaluation Results",
+            "Evaluation",
+            "Results",
+            "Performance",
+            "Metrics",
+            "Benchmark Results",
+            "Benchmarks",
+        ])
+        if not section:
+            return {}
+
+        metrics: dict[str, Any] = {}
+
+        # Pattern 1: "MetricName: value" or "MetricName: value%"
+        kv_pattern = re.findall(
+            r'(?:^|\n)\s*[-*]?\s*\**([A-Za-z][\w\s/.-]{1,40}?)\**\s*[:=]\s*'
+            r'(\d+(?:\.\d+)?%?)',
+            section,
+        )
+        for key, value in kv_pattern:
+            key = key.strip().rstrip(':').strip()
+            if key:
+                metrics[key] = value
+
+        # Pattern 2: markdown table rows "| MetricName | value |"
+        table_pattern = re.findall(
+            r'\|\s*([A-Za-z][\w\s/.-]{1,40}?)\s*\|\s*(\d+(?:\.\d+)?%?)\s*\|',
+            section,
+        )
+        for key, value in table_pattern:
+            key = key.strip()
+            # Skip table separator rows (e.g., "---")
+            if key and not re.match(r'^[-:]+$', key):
+                metrics[key] = value
+
+        return metrics
+
+    # --- Intended Use ----------------------------------------------------
+
+    def _extract_intended_uses(self, content: str) -> str | None:
+        """Extract intended uses from markdown sections."""
+        section = _extract_section(content, [
+            "Intended Use",
+            "Intended Uses",
+            "Uses",
+            "Direct Use",
+            "Intended Use Cases",
+            "Use Cases",
+            "How to Use",
+        ])
+        if section:
+            return _strip_markdown(section)
+        return None
+
+    def _extract_out_of_scope_uses(self, content: str) -> str | None:
+        """Extract out-of-scope / misuse warnings from markdown sections."""
+        section = _extract_section(content, [
+            "Out-of-Scope Use",
+            "Out-of-Scope Uses",
+            "Out of Scope Use",
+            "Out of Scope Uses",
+            "Misuse",
+            "Misuse and Out-of-scope Use",
+            "Out-of-Scope Usage",
+            "Not Intended Use",
+        ])
+        if section:
+            return _strip_markdown(section)
+        return None
+
+    # --- Environmental Impact --------------------------------------------
+
+    def _extract_environmental_impact(
+        self, content: str
+    ) -> dict[str, str]:
+        """Extract environmental impact / carbon footprint information."""
+        section = _extract_section(content, [
+            "Environmental Impact",
+            "Carbon Footprint",
+            "Compute Infrastructure",
+            "Carbon Emissions",
+            "Hardware",
+        ])
+        if not section:
+            return {}
+
+        impact: dict[str, str] = {}
+
+        # Hardware type
+        hw_match = re.search(
+            r'(?:hardware|gpu|tpu|accelerator)[\s:]*([^\n]{3,80})',
+            section, re.IGNORECASE,
+        )
+        if hw_match:
+            impact["hardware"] = _strip_markdown(hw_match.group(1).strip())
+
+        # Training time / hours
+        time_match = re.search(
+            r'(?:training time|hours|duration|compute)[\s:]*([^\n]{3,80})',
+            section, re.IGNORECASE,
+        )
+        if time_match:
+            impact["training_time"] = _strip_markdown(time_match.group(1).strip())
+
+        # Carbon emissions
+        carbon_match = re.search(
+            r'(?:carbon|co2|emissions?)[\s:]*([^\n]{3,80})',
+            section, re.IGNORECASE,
+        )
+        if carbon_match:
+            impact["carbon_emissions"] = _strip_markdown(carbon_match.group(1).strip())
+
+        # Cloud provider / region
+        cloud_match = re.search(
+            r'(?:cloud provider|region|provider)[\s:]*([^\n]{3,80})',
+            section, re.IGNORECASE,
+        )
+        if cloud_match:
+            impact["cloud_provider"] = _strip_markdown(cloud_match.group(1).strip())
+
+        return impact
+
+    # --- Use Restrictions (RAIL / legal) ---------------------------------
+
+    def _extract_use_restrictions(self, content: str) -> list[str]:
+        """Extract use restrictions, especially from RAIL-style licenses.
+
+        Looks for explicit restriction language such as "You may not use",
+        "restricted from", "not permitted to", etc., as well as dedicated
+        restriction sections.
+        """
+        restrictions: list[str] = []
+
+        # First, check for a dedicated restrictions section
+        section = _extract_section(content, [
+            "Use Restrictions",
+            "Restrictions",
+            "Acceptable Use",
+            "Usage Restrictions",
+            "Terms of Use",
+            "License Restrictions",
+        ])
+        if section:
+            # Each bullet or numbered item is a separate restriction
+            items = re.findall(r'[-*]\s+(.+)', section)
+            if items:
+                restrictions.extend([_strip_markdown(item.strip()) for item in items])
+            elif section.strip():
+                # No bullet list; treat entire section as a single restriction
+                restrictions.append(_strip_markdown(section))
+
+        # Second, scan the entire content for RAIL-style restriction phrases
+        restriction_patterns = [
+            r'(?:you\s+(?:may\s+not|shall\s+not|must\s+not|cannot|are\s+not\s+(?:allowed|permitted)\s+to))\s+(.+?)(?:\.|$)',
+            r'(?:restricted\s+from)\s+(.+?)(?:\.|$)',
+            r'(?:not\s+(?:permitted|allowed)\s+to)\s+(.+?)(?:\.|$)',
+            r'(?:prohibited\s+from)\s+(.+?)(?:\.|$)',
+            r'(?:is\s+not\s+(?:intended|designed)\s+for)\s+(.+?)(?:\.|$)',
+        ]
+
+        for pattern in restriction_patterns:
+            matches = re.findall(pattern, content, re.IGNORECASE | re.MULTILINE)
+            for m in matches:
+                cleaned = _strip_markdown(m.strip())
+                if cleaned and cleaned not in restrictions:
+                    restrictions.append(cleaned)
+
+        return restrictions
 
 
 def parse_model_card(path: Path) -> ModelCardInfo | None:

@@ -1,0 +1,251 @@
+---
+# EU AI Act GPAI Compliance Policy Template
+# Enforces license compliance aligned with EU AI Act Article 53 obligations
+# for General Purpose AI models, training data, and SaaS deployments.
+#
+# Usage: Copy this template and customise for your organisation's specific
+# AI deployment contexts and risk tolerance.
+
+name: eu-ai-act-compliance
+version: "1.0"
+description: >-
+  EU AI Act GPAI compliance policy — enforces Article 53 obligations
+  for AI models and datasets. Requires clear copyright terms,
+  transparent licensing, and documented rights reservations for all
+  components used in general-purpose AI systems.
+disclaimer: >-
+  This policy encodes license compatibility guidance aligned with the
+  EU AI Act but does not constitute legal advice. Organisations must
+  engage qualified legal counsel to validate compliance with
+  Regulation (EU) 2024/1689 and Directive (EU) 2019/790 copyright
+  obligations. Unknown or unresolved licenses are treated as
+  violations to ensure audit readiness.
+default_context: gpai
+
+contexts:
+  # ---------------------------------------------------------------
+  # General Purpose AI model compliance — EU AI Act Article 53
+  # ---------------------------------------------------------------
+  gpai:
+    description: >-
+      General Purpose AI model compliance — EU AI Act Article 53.
+      Only licenses with clear copyright and attribution terms are
+      permitted. Licenses that obstruct downstream documentation or
+      transparency obligations are denied.
+    allow:
+      # Permissive licenses with clear copyright terms
+      - Apache-2.0
+      - MIT
+      - BSD-2-Clause
+      - BSD-3-Clause
+      - CC-BY-4.0
+      - CC0-1.0
+      - ISC
+      # OpenRAIL family with documented restrictions
+      - openrail
+      - openrail-m
+      - openrail++
+    deny:
+      # No-derivatives — blocks downstream documentation required by Art.53(1)(b)
+      - CC-BY-ND-*
+      - CC-BY-NC-ND-*
+      # Network copyleft creates compliance burden for GPAI transparency
+      - AGPL-3.0
+      # Service-level copyleft incompatible with GPAI provider obligations
+      - SSPL-1.0
+      # No attribution chain — problematic for copyright policy under Art.53(1)(c)
+      - Unlicense
+    review:
+      # Licenses requiring copyright policy documentation review
+      - CC-BY-SA-4.0
+      - CC-BY-NC-4.0
+      - LGPL-*
+      - MPL-2.0
+      # AI model licenses with usage thresholds or restrictions
+      - llama-*
+      - bigscience-*
+      - deepmind-*
+      - mistral-*
+      - creativeml-*
+    deny_reasons:
+      CC-BY-ND-*: >-
+        No-derivatives clause blocks downstream providers from creating
+        required technical documentation (Art.53(1)(a)) and capability
+        descriptions (Art.53(1)(b)).
+      CC-BY-NC-ND-*: >-
+        No-derivatives and non-commercial terms together prevent
+        compliance with GPAI transparency and documentation obligations.
+      AGPL-3.0: >-
+        Network copyleft obligations create disproportionate compliance
+        burden when providing GPAI models to downstream AI system
+        providers under Art.53(1)(b).
+      SSPL-1.0: >-
+        Service-source disclosure requirements conflict with GPAI
+        provider service delivery models and are not OSI-approved.
+      Unlicense: >-
+        Absence of attribution terms makes it difficult to maintain the
+        copyright policy required by Art.53(1)(c) and to document
+        training data provenance under Art.53(1)(d).
+    review_reasons:
+      CC-BY-SA-4.0: >-
+        ShareAlike obligations may propagate to derivative AI outputs;
+        assess compatibility with downstream provider licensing.
+      CC-BY-NC-4.0: >-
+        Non-commercial restriction requires validation against GPAI
+        deployment model and commercial downstream usage.
+      LGPL-*: >-
+        Weak copyleft terms need assessment against model integration
+        boundaries and distribution obligations.
+      MPL-2.0: >-
+        File-level copyleft scope must be documented for compliance
+        with Art.53(1)(a) technical documentation requirements.
+      llama-*: >-
+        Meta Llama licenses include monthly active user thresholds and
+        acceptable use policies; verify compliance with Art.53 obligations.
+      bigscience-*: >-
+        BigScience RAIL licenses include use-based restrictions that must
+        be documented for downstream provider transparency.
+      deepmind-*: >-
+        DeepMind model licenses contain usage restrictions requiring
+        legal review for GPAI compliance.
+      mistral-*: >-
+        Mistral license terms require review for compatibility with
+        EU AI Act transparency obligations.
+      creativeml-*: >-
+        CreativeML OpenRAIL restrictions must be assessed against
+        downstream provider obligations.
+    dual_license_preference: most_permissive
+    explanation:
+      - Selects the most permissive license to maximise downstream flexibility.
+      - Unknown or unresolved licenses trigger violations for audit safety.
+      - Art.53(1)(c) requires a documented copyright policy for all training inputs.
+
+  # ---------------------------------------------------------------
+  # Training data license compliance — EU AI Act Article 53(1)(c)
+  # ---------------------------------------------------------------
+  training_data:
+    description: >-
+      Training data license compliance for EU AI Act Article 53(1)(c)
+      and Article 53(1)(d). Ensures all training data carries clear
+      licensing terms compatible with the copyright policy and training
+      data summary obligations.
+    allow:
+      # Clear data licenses for training with documented terms
+      - CC0-1.0
+      - CC-BY-4.0
+      - PDDL-1.0
+      - ODC-By-1.0
+      - CDLA-Permissive-1.0
+      - CDLA-Permissive-2.0
+      - Apache-2.0
+      - MIT
+    deny:
+      # No-derivatives — prevents model training as derivative work
+      - CC-BY-ND-*
+      - CC-BY-NC-ND-*
+    review:
+      # Need copyright policy documentation before use
+      - CC-BY-SA-4.0
+      - CC-BY-NC-4.0
+      - ODbL-1.0
+      - CDLA-Sharing-1.0
+    deny_reasons:
+      CC-BY-ND-*: >-
+        No-derivatives clause directly conflicts with training use,
+        which creates derivative works. Incompatible with Art.53(1)(c)
+        copyright policy compliance.
+      CC-BY-NC-ND-*: >-
+        Combined no-derivatives and non-commercial restrictions prevent
+        lawful training data use and downstream documentation.
+    review_reasons:
+      CC-BY-SA-4.0: >-
+        ShareAlike may require trained model outputs to be released
+        under compatible terms; assess with legal counsel.
+      CC-BY-NC-4.0: >-
+        Non-commercial restriction must be validated against the GPAI
+        provider's commercial deployment plans.
+      ODbL-1.0: >-
+        Open Database License share-alike provisions require assessment
+        for trained model output obligations.
+      CDLA-Sharing-1.0: >-
+        CDLA Sharing requires downstream data recipients to use the
+        same licence; assess impact on model distribution.
+    dual_license_preference: most_permissive
+    explanation:
+      - Art.53(1)(c) mandates a copyright policy covering all training data.
+      - Art.53(1)(d) requires a publicly available training data summary.
+      - Unknown data licenses are treated as violations pending resolution.
+
+  # ---------------------------------------------------------------
+  # AI-powered SaaS deployments under EU AI Act
+  # ---------------------------------------------------------------
+  saas:
+    description: >-
+      AI-powered SaaS deployments under the EU AI Act. Combines
+      traditional SaaS licensing restrictions with GPAI provider
+      obligations for hosted AI services.
+    allow:
+      - Apache-2.0
+      - MIT
+      - BSD-2-Clause
+      - BSD-3-Clause
+      - ISC
+      - CC0-1.0
+      - CC-BY-4.0
+      - openrail
+      - openrail-m
+    deny:
+      # Network and service copyleft — incompatible with SaaS delivery
+      - AGPL-*
+      - GPL-*
+      - SSPL-*
+      # No-derivatives — blocks SaaS integration documentation
+      - CC-BY-ND-*
+      - CC-BY-NC-ND-*
+    review:
+      - LGPL-*
+      - MPL-2.0
+      - CC-BY-SA-*
+      - CC-BY-NC-*
+      # AI model licenses with usage restrictions
+      - llama-*
+      - bigscience-*
+      - deepmind-*
+    deny_reasons:
+      AGPL-*: >-
+        Network copyleft obligations require source disclosure for
+        hosted services, conflicting with SaaS delivery under Art.53.
+      GPL-*: >-
+        Strong copyleft terms are incompatible with proprietary SaaS
+        distribution and GPAI provider obligations.
+      SSPL-*: >-
+        Service-level source disclosure requirements conflict with
+        SaaS business models and are not OSI-approved.
+      CC-BY-ND-*: >-
+        No-derivatives clause prevents required downstream integration
+        documentation for SaaS AI systems.
+      CC-BY-NC-ND-*: >-
+        Combined restrictions block both commercial SaaS use and
+        derivative documentation obligations.
+    review_reasons:
+      LGPL-*: >-
+        Verify dynamic linking boundaries in SaaS deployment architecture.
+      MPL-2.0: >-
+        Assess file-level copyleft scope within SaaS service components.
+      CC-BY-SA-*: >-
+        ShareAlike clauses may propagate to proprietary SaaS assets.
+      CC-BY-NC-*: >-
+        Non-commercial restriction conflicts with commercial SaaS
+        offerings; requires legal exemption.
+      llama-*: >-
+        Meta Llama user threshold and acceptable use policies must be
+        evaluated for SaaS deployment scale.
+      bigscience-*: >-
+        BigScience RAIL use restrictions need assessment for SaaS context.
+      deepmind-*: >-
+        DeepMind model terms require review for hosted service delivery.
+    dual_license_preference: avoid_copyleft
+    explanation:
+      - Prioritises permissive licenses to avoid copyleft propagation in SaaS.
+      - All AI model licenses are reviewed for SaaS-specific restrictions.
+      - Unknown licenses are treated as violations for regulatory safety.

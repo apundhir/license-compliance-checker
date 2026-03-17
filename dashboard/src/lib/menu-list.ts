@@ -94,6 +94,12 @@ export function getMenuList(pathname: string): Group[] {
           label: "Datasets",
           icon: Package,
           submenus: []
+        },
+        {
+          href: "/compliance",
+          label: "EU AI Act",
+          icon: Shield,
+          submenus: []
         }
       ]
     },
