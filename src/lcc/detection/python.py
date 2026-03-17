@@ -400,8 +400,6 @@ class PythonDetector(Detector):
     def _parse_pyproject_file(self, path: Path, project_root: Path) -> Iterable[RequirementSpec]:
         if not path.exists():
             return []
-        if not path.exists():
-            return []
         data = tomllib.loads(path.read_text(encoding="utf-8"))
         results: list[RequirementSpec] = []
 
@@ -459,8 +457,6 @@ class PythonDetector(Detector):
     def _parse_pipfile_file(self, path: Path, project_root: Path) -> Iterable[RequirementSpec]:
         if not path.exists():
             return []
-        if not path.exists():
-            return []
         data = tomllib.loads(path.read_text(encoding="utf-8"))
         packages = data.get("packages", {})
         dev_packages = data.get("dev-packages", {})
@@ -479,8 +475,6 @@ class PythonDetector(Detector):
         return results
 
     def _parse_poetry_lock_file(self, path: Path, project_root: Path) -> Iterable[RequirementSpec]:
-        if not path.exists():
-            return []
         if not path.exists():
             return []
         data = tomllib.loads(path.read_text(encoding="utf-8"))
@@ -502,8 +496,6 @@ class PythonDetector(Detector):
         return results
 
     def _parse_environment_yml_file(self, path: Path, project_root: Path) -> Iterable[RequirementSpec]:
-        if not path.exists():
-            return []
         if not path.exists():
             return []
         content = path.read_text(encoding="utf-8")

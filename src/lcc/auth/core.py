@@ -28,12 +28,22 @@ from pydantic import BaseModel, EmailStr
 
 # Configuration
 SECRET_KEY = os.getenv("LCC_SECRET_KEY", "")
-if not SECRET_KEY:
-    raise RuntimeError(
-        "LCC_SECRET_KEY environment variable is required. "
-        "Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\""
-    )
 ALGORITHM = "HS256"
+
+
+def _get_secret_key() -> str:
+    """Return the secret key, raising an error if it is not configured.
+
+    The check is deferred so that importing this module does not fail
+    in environments that do not need authentication (CLI, tests, etc.).
+    """
+    key = SECRET_KEY or os.getenv("LCC_SECRET_KEY", "")
+    if not key:
+        raise RuntimeError(
+            "LCC_SECRET_KEY environment variable is required. "
+            "Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\""
+        )
+    return key
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 REFRESH_TOKEN_EXPIRE_DAYS = 7
 
@@ -119,7 +129,7 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
         expire = datetime.now(UTC) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
 
     to_encode.update({"exp": expire, "type": "access"})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    encoded_jwt = jwt.encode(to_encode, _get_secret_key(), algorithm=ALGORITHM)
     return encoded_jwt
 
 
@@ -136,7 +146,7 @@ def create_refresh_token(data: dict) -> str:
     to_encode = data.copy()
     expire = datetime.now(UTC) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
     to_encode.update({"exp": expire, "type": "refresh"})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    encoded_jwt = jwt.encode(to_encode, _get_secret_key(), algorithm=ALGORITHM)
     return encoded_jwt
 
 
@@ -154,7 +164,7 @@ def decode_token(token: str) -> TokenData:
         HTTPException: If token is invalid or expired
     """
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, _get_secret_key(), algorithms=[ALGORITHM])
         username: str = payload.get("sub")
         role: str = payload.get("role")
         exp: int = payload.get("exp")

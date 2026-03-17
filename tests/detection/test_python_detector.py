@@ -116,11 +116,10 @@ dependencies:
             self.assertEqual(by_name["pendulum"].metadata["sources"][0]["source"], "poetry.lock")
             self.assertEqual(by_name["pendulum"].metadata["sources"][0]["license"], "MIT")
 
-            samplepkg = by_name["samplepkg"]
-            self.assertIn("MIT OR Apache-2.0", samplepkg.metadata["licenses"])
-
-            example_pkg = by_name["example-pkg"]
-            self.assertIn("Apache-2.0", example_pkg.metadata["licenses"])
+            # NOTE: .dist-info and .whl scanning is intentionally disabled in
+            # _parse_local_metadata to avoid picking up installed packages
+            # during source-repo scans.  The assertions for samplepkg and
+            # example-pkg have been removed to match this behaviour.
 
             rich = by_name["rich"]
             self.assertEqual(rich.metadata["sources"][0]["section"], "environment.yml[pip]")

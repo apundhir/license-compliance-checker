@@ -39,6 +39,10 @@ PHASE*.md
 /package-lock.json
 /package.json
 
+# VS Code extension build artifacts
+vscode-extension/out/
+vscode-extension/node_modules/
+
 # Python cache
 .pytest_cache/
 *.egg-info/

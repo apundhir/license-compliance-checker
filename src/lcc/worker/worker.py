@@ -15,12 +15,15 @@
 """
 Arq worker entrypoint.
 """
+import logging
 import os
 
 from arq.connections import RedisSettings
 
 from lcc.config import load_config
 from lcc.worker.tasks import run_scan_task
+
+logger = logging.getLogger(__name__)
 
 config = load_config()
 
@@ -59,7 +62,7 @@ class WorkerSettings:
         database=int(os.getenv("REDIS_DB", 0)),
         password=os.getenv("REDIS_PASSWORD"),
     )
-    print(f"DEBUG: Redis config: host={redis_settings.host}, port={redis_settings.port}, password={redis_settings.password}, env={os.getenv('REDIS_PASSWORD')}")
+    logger.debug("Redis config: host=%s, port=%s", redis_settings.host, redis_settings.port)
 
     # If we wanted to use the full URL from config, we'd need to decompose it.
     # For now, relying on separate env vars or defaults is safer for this implementation step.

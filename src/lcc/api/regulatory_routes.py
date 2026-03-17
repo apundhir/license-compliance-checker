@@ -24,7 +24,7 @@ from __future__ import annotations
 import io
 import json
 import zipfile
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -214,7 +214,7 @@ async def download_compliance_pack(
             "project": scan.project_name,
             "scan_status": scan.status,
             "created_at": scan.created_at.isoformat() if scan.created_at else "",
-            "pack_generated_at": datetime.utcnow().isoformat(),
+            "pack_generated_at": datetime.now(UTC).isoformat(),
         }
         zf.writestr(
             "scan-metadata.json",

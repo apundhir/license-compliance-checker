@@ -28,7 +28,7 @@ References:
 from __future__ import annotations
 
 import re
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from lcc.ai.licenses import AI_LICENSES, normalize_ai_license_name
@@ -403,7 +403,7 @@ class EUAIActAssessor:
             obligations=obligations,
             overall_status=overall,
             recommendations=recommendations,
-            assessed_at=datetime.utcnow().isoformat(),
+            assessed_at=datetime.now(UTC).isoformat(),
         )
 
     # ------------------------------------------------------------------ #
@@ -455,7 +455,7 @@ class EUAIActAssessor:
         return RegulatoryReport(
             title="EU AI Act Article 53 GPAI Compliance Report",
             framework=RegulatoryFramework.EU_AI_ACT,
-            generated_at=datetime.utcnow().isoformat(),
+            generated_at=datetime.now(UTC).isoformat(),
             assessments=assessments,
             summary=summary,
         )

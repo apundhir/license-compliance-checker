@@ -56,7 +56,7 @@ async def run_scan_task(ctx: dict[str, Any], scan_id: str, repo_url: str | None 
         )
 
         # Build scanner
-        detectors = build_detectors()
+        detectors = build_detectors(config)
         resolvers = build_resolvers(config, cache)
         scanner = Scanner(detectors, resolvers, config)
 
@@ -98,8 +98,6 @@ async def run_scan_task(ctx: dict[str, Any], scan_id: str, repo_url: str | None 
                     )
                     project_path = Path(temp_dir)
 
-    # ... [inside run_scan_task] ...
-
                     logger.debug(f"Scanned repo_url: {repo_url}")
                     logger.debug(f"Project path: {project_path}")
                     if project_path.exists():
@@ -119,7 +117,6 @@ async def run_scan_task(ctx: dict[str, Any], scan_id: str, repo_url: str | None 
                     "Detecting components in project..."
                 )
 
-                # Run synchronous scan in a thread pool to avoid blocking the async worker
                 # Run synchronous scan in a thread pool to avoid blocking the async worker
                 loop = asyncio.get_running_loop()
 

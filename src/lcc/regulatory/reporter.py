@@ -24,7 +24,7 @@ artefacts into a single directory for audit and record-keeping.
 from __future__ import annotations
 
 import json
-from datetime import datetime
+from datetime import UTC, datetime
 from html import escape
 from pathlib import Path
 from typing import Any
@@ -285,7 +285,7 @@ def generate_compliance_pack(
     Returns:
         Path to the created compliance pack directory.
     """
-    timestamp = datetime.utcnow().strftime("%Y%m%dT%H%M%S")
+    timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S")
     pack_dir = output_dir / f"eu-ai-act-compliance-pack-{timestamp}"
     pack_dir.mkdir(parents=True, exist_ok=True)
 
@@ -333,7 +333,7 @@ def _build_training_data_summary(
 
     if not ai_findings:
         return {
-            "generated_at": datetime.utcnow().isoformat(),
+            "generated_at": datetime.now(UTC).isoformat(),
             "total_ai_components": 0,
             "models": [],
         }
@@ -354,7 +354,7 @@ def _build_training_data_summary(
         })
 
     return {
-        "generated_at": datetime.utcnow().isoformat(),
+        "generated_at": datetime.now(UTC).isoformat(),
         "total_ai_components": len(models),
         "models": models,
     }
@@ -370,7 +370,7 @@ def _build_copyright_policy_template(
     findings: list[ComponentFinding],
 ) -> str:
     """Build a Markdown copyright policy template populated with scan data."""
-    generated_date = report.generated_at or datetime.utcnow().isoformat()
+    generated_date = report.generated_at or datetime.now(UTC).isoformat()
 
     ai_findings = [
         f for f in findings
