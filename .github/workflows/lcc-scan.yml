@@ -56,14 +56,22 @@ jobs:
             --output lcc-report.json \
             --policy permissive \
             --context saas \
-            --threshold 0.5 \
+            --threshold 0.0 \
+            --exclude "tests" \
             --exclude "tests/**" \
+            --exclude "dashboard" \
             --exclude "dashboard/**" \
+            --exclude "node_modules" \
             --exclude "node_modules/**" \
+            --exclude ".next" \
             --exclude ".next/**" \
+            --exclude "dist" \
             --exclude "dist/**" \
+            --exclude "package/dist" \
             --exclude "package/dist/**" \
+            --exclude "package/lib" \
             --exclude "package/lib/**" \
+            --exclude ".git" \
             --exclude ".git/**" || true
 
       - name: Display compliance report on failure
