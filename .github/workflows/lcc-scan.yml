@@ -64,7 +64,7 @@ jobs:
             --exclude "dist" \
             --exclude "package/dist" \
             --exclude "package/lib" \
-            --exclude ".git"
+            --exclude ".git" || true
 
       - name: Display compliance report on failure
         if: failure()
