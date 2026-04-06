@@ -100,8 +100,8 @@ class RubyDetector(Detector):
             is_direct = comp_name in gemfile_direct_names
             # Determine source type
             source_files = [s.get("source", "") for s in component.metadata.get("sources", [])]
-            has_manifest = any("Gemfile" == str(s) for s in source_files)
-            has_lockfile = any("Gemfile.lock" == str(s) for s in source_files)
+            has_manifest = any(str(s) == "Gemfile" for s in source_files)
+            has_lockfile = any(str(s) == "Gemfile.lock" for s in source_files)
             if has_manifest and has_lockfile:
                 dep_source = "both"
             elif has_lockfile:

@@ -227,7 +227,7 @@ class PythonDetector(Detector):
                 for name in deps:
                     if name.lower() != "python":
                         direct.add(canonicalize_name(name))
-        for group_name, group_data in poetry_data.get("group", {}).items():
+        for _group_name, group_data in poetry_data.get("group", {}).items():
             if isinstance(group_data, dict):
                 group_deps = group_data.get("dependencies", {})
                 if isinstance(group_deps, dict):

@@ -33,7 +33,6 @@ from lcc.models import ComponentFinding, ComponentType
 from lcc.regulatory.eu_ai_act import get_training_data_info
 from lcc.regulatory.frameworks import RegulatoryReport
 
-
 # ===================================================================== #
 #  RegulatoryReporter                                                    #
 # ===================================================================== #

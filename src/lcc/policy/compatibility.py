@@ -449,11 +449,11 @@ class LicenseCompatibilityChecker:
                     severity="high",
                     issue_type="copyleft_version_conflict",
                     description=(
-                        f"Your dependencies include both GPL-2.0 and GPL-3.0 licensed "
-                        f"components. GPL-2.0-only code cannot be combined with "
-                        f"GPL-3.0 code because the licenses have incompatible "
-                        f"additional terms. This conflict prevents legally distributing "
-                        f"a combined work."
+                        "Your dependencies include both GPL-2.0 and GPL-3.0 licensed "
+                        "components. GPL-2.0-only code cannot be combined with "
+                        "GPL-3.0 code because the licenses have incompatible "
+                        "additional terms. This conflict prevents legally distributing "
+                        "a combined work."
                     ),
                     components=all_components,
                     licenses=all_licenses,

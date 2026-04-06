@@ -125,11 +125,8 @@ def is_gpai_model(finding: ComponentFinding) -> bool:
     Returns:
         ``True`` if the component should be assessed under GPAI rules.
     """
-    if finding.component.type not in (ComponentType.AI_MODEL, ComponentType.DATASET):
-        return False
-
     # Any AI model or dataset is presumed GPAI for assessment purposes
-    return True
+    return finding.component.type in (ComponentType.AI_MODEL, ComponentType.DATASET)
 
 
 def get_training_data_info(finding: ComponentFinding) -> dict[str, Any]:
@@ -202,9 +199,7 @@ def _has_license_info(finding: ComponentFinding) -> bool:
     """Return ``True`` if a licence has been resolved or is in metadata."""
     if finding.resolved_license:
         return True
-    if finding.component.metadata.get("license_from_card"):
-        return True
-    return False
+    return bool(finding.component.metadata.get("license_from_card"))
 
 
 def _license_display(finding: ComponentFinding) -> str:
