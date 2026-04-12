@@ -84,10 +84,7 @@ class HuggingFaceDetector(Detector):
         # Also support GGUF (Ollama/llama.cpp) and ONNX model files
         if any(path.rglob("*.gguf")):
             return True
-        if any(path.rglob("*.onnx")):
-            return True
-
-        return False
+        return bool(any(path.rglob("*.onnx")))
 
     def discover(self, path: Path) -> list[Component]:
         """

@@ -4,11 +4,11 @@ referenced by Hub ID without requiring local download.
 """
 from __future__ import annotations
 
-import logging
-from dataclasses import dataclass
-from urllib.request import urlopen, Request
 import json
+import logging
 import re
+from dataclasses import dataclass
+from urllib.request import Request, urlopen
 
 logger = logging.getLogger(__name__)
 
