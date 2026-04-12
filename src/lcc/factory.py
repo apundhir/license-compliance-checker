@@ -23,7 +23,7 @@ from lcc.detection.dotnet import DotNetDetector
 from lcc.detection.go import GoDetector
 from lcc.detection.gradle import GradleDetector
 from lcc.detection.hf_datasets import HuggingFaceDatasetDetector
-from lcc.detection.huggingface import HuggingFaceDetector
+from lcc.detection.huggingface import HuggingFaceDetector, HuggingFaceReferenceDetector
 from lcc.detection.java import MavenDetector
 from lcc.detection.javascript import JavaScriptDetector
 from lcc.detection.license_file import LicenseFileDetector
@@ -55,6 +55,7 @@ def build_detectors(config: LCCConfig) -> list[Detector]:
         # AI/ML detectors (Phase 3)
         HuggingFaceDetector(),
         HuggingFaceDatasetDetector(),
+        HuggingFaceReferenceDetector(),
         # Generic file detectors
         LicenseFileDetector(config),
     ]
