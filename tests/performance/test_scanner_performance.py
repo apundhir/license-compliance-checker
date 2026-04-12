@@ -8,7 +8,7 @@ import pytest
 
 from lcc.cache import Cache
 from lcc.config import LCCConfig
-from lcc.factory import build_detectors
+from lcc.factory import build_detectors, build_resolvers
 from lcc.scanner import Scanner
 
 
@@ -27,14 +27,14 @@ class TestScannerPerformance:
         # Setup
         config = LCCConfig()
         cache = Cache(config)
-        detectors = build_detectors()
-        scanner = Scanner(detectors, config, cache)
+        detectors = build_detectors(config)
+        scanner = Scanner(detectors, build_resolvers(config, cache), config)
 
         # Benchmark
         benchmark = performance_benchmark("Scan Small Project", iterations=50, warmup=5)
 
         def scan_operation():
-            report = scanner.scan(str(temp_project_dir))
+            report = scanner.scan(project_root=Path(temp_project_dir))
             assert report is not None
 
         result = benchmark.run(scan_operation)
@@ -61,14 +61,14 @@ class TestScannerPerformance:
         # Setup
         config = LCCConfig()
         cache = Cache(config)
-        detectors = build_detectors()
-        scanner = Scanner(detectors, config, cache)
+        detectors = build_detectors(config)
+        scanner = Scanner(detectors, build_resolvers(config, cache), config)
 
         # Benchmark (fewer iterations for larger project)
         benchmark = performance_benchmark("Scan Medium Project", iterations=10, warmup=2)
 
         def scan_operation():
-            report = scanner.scan(str(large_project_dir))
+            report = scanner.scan(project_root=Path(large_project_dir))
             assert report is not None
 
         result = benchmark.run(scan_operation)
@@ -97,7 +97,7 @@ class TestScannerPerformance:
         benchmark = performance_benchmark("Detector Initialization", iterations=100, warmup=10)
 
         def init_operation():
-            detectors = build_detectors()
+            detectors = build_detectors(config)
             assert len(detectors) > 0
 
         result = benchmark.run(init_operation)
@@ -118,17 +118,17 @@ class TestScannerPerformance:
         """Benchmark scanning with cache (should be faster on second run)."""
         config = LCCConfig()
         cache = Cache(config)
-        detectors = build_detectors()
-        scanner = Scanner(detectors, config, cache)
+        detectors = build_detectors(config)
+        scanner = Scanner(detectors, build_resolvers(config, cache), config)
 
         # First scan to populate cache
-        scanner.scan(str(temp_project_dir))
+        scanner.scan(project_root=Path(temp_project_dir))
 
         # Benchmark cached scan
         benchmark = performance_benchmark("Scan With Cache", iterations=50, warmup=5)
 
         def cached_scan_operation():
-            report = scanner.scan(str(temp_project_dir))
+            report = scanner.scan(project_root=Path(temp_project_dir))
             assert report is not None
 
         result = benchmark.run(cached_scan_operation)
@@ -154,13 +154,13 @@ class TestScannerPerformance:
         # temp_project_dir already has Python, Node.js, Rust, and Go files
         config = LCCConfig()
         cache = Cache(config)
-        detectors = build_detectors()
-        scanner = Scanner(detectors, config, cache)
+        detectors = build_detectors(config)
+        scanner = Scanner(detectors, build_resolvers(config, cache), config)
 
         benchmark = performance_benchmark("Scan Multi-Ecosystem Project", iterations=20, warmup=3)
 
         def multi_ecosystem_scan():
-            report = scanner.scan(str(temp_project_dir))
+            report = scanner.scan(project_root=Path(temp_project_dir))
             assert report is not None
             # Should detect multiple ecosystems
             assert len(report.findings) > 0
@@ -186,15 +186,15 @@ class TestScannerPerformance:
         """Benchmark scanning with exclude patterns."""
         config = LCCConfig()
         cache = Cache(config)
-        detectors = build_detectors()
-        scanner = Scanner(detectors, config, cache)
+        detectors = build_detectors(config)
+        scanner = Scanner(detectors, build_resolvers(config, cache), config)
 
         exclude_patterns = ["node_modules/**", "*.pyc", "test/**", "docs/**"]
 
         benchmark = performance_benchmark("Scan With Exclusions", iterations=15, warmup=3)
 
         def scan_with_exclusions():
-            report = scanner.scan(str(large_project_dir), exclude=exclude_patterns)
+            report = scanner.scan(project_root=Path(large_project_dir), exclude=exclude_patterns)
             assert report is not None
 
         result = benchmark.run(scan_with_exclusions)
@@ -285,7 +285,7 @@ class TestDetectorPerformance:
 
         config = LCCConfig()
         cache = Cache(config)
-        detectors = build_detectors()
+        detectors = build_detectors(config)
 
         benchmark = performance_benchmark("Concurrent Detection", iterations=50, warmup=5)
 
@@ -325,8 +325,8 @@ class TestScannerScalability:
 
         config = LCCConfig()
         cache = Cache(config)
-        detectors = build_detectors()
-        scanner = Scanner(detectors, config, cache)
+        detectors = build_detectors(config)
+        scanner = Scanner(detectors, build_resolvers(config, cache), config)
 
         results = []
 
@@ -350,7 +350,7 @@ class TestScannerScalability:
                 )
 
                 def scan_n_files():
-                    report = scanner.scan(str(project_dir))
+                    report = scanner.scan(project_root=Path(project_dir))
                     assert report is not None
 
                 result = benchmark.run(scan_n_files)

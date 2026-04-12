@@ -15,7 +15,7 @@
 """
 SQLAlchemy models for the persistence layer.
 """
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
 
@@ -33,8 +33,8 @@ class Scan(Base):
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid4()))
     project_name: Mapped[str] = mapped_column(String, index=True)
     status: Mapped[str] = mapped_column(String, default="queued")  # queued, running, complete, failed
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None))
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None), onupdate=lambda: datetime.now(UTC).replace(tzinfo=None))
     duration_seconds: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     # Summary statistics

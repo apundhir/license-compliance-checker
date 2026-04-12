@@ -28,7 +28,7 @@ class TestScanCreation:
         )
 
         # Should succeed or return appropriate error
-        assert response.status_code in [201, 400, 500]
+        assert response.status_code in [201, 400]  # 500 no longer acceptable
 
         if response.status_code == 201:
             scan_data = response.json()
@@ -114,7 +114,7 @@ class TestScanCreation:
         )
 
         # Should succeed
-        assert scan_response.status_code in [201, 400, 500]
+        assert scan_response.status_code in [201, 400]  # 500 no longer acceptable
 
         if scan_response.status_code == 201:
             scan_data = scan_response.json()
@@ -143,7 +143,7 @@ class TestScanCreation:
             }
         )
 
-        assert response.status_code in [201, 400, 500]
+        assert response.status_code in [201, 400]  # 500 no longer acceptable
 
 
 class TestScanRetrieval:
@@ -457,7 +457,7 @@ class TestScanAccess:
         )
 
         # Should succeed (scans are not admin-only)
-        assert response.status_code in [201, 400, 500]
+        assert response.status_code in [201, 400]  # 500 no longer acceptable
 
     def test_regular_user_can_view_scans(
         self,

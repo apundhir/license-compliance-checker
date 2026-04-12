@@ -105,7 +105,22 @@ async def run_scan_task(ctx: dict[str, Any], scan_id: str, repo_url: str | None 
                     else:
                         logger.debug(f"Project path {project_path} does not exist!")
                 elif path:
-                    project_path = Path(path)
+                    project_path = Path(path).resolve()
+                    # Security: ensure the resolved path stays within an allowed root.
+                    # Allowed roots (in order of preference): LCC_WORKSPACE env var,
+                    # /workspace (Docker default), or the system temp directory.
+                    import os as _os
+                    _workspace = Path(_os.getenv("LCC_WORKSPACE", "/workspace")).resolve()
+                    _tmp = Path(tempfile.gettempdir()).resolve()
+                    _allowed = [_workspace, _tmp]
+                    if not any(
+                        project_path == allowed or project_path.is_relative_to(allowed)
+                        for allowed in _allowed
+                    ):
+                        raise PermissionError(
+                            f"Path '{path}' is outside allowed scan directories. "
+                            f"Set LCC_WORKSPACE to permit additional directories."
+                        )
                     if not project_path.exists():
                         raise FileNotFoundError(f"Path {path} does not exist")
                 else:
@@ -199,10 +214,23 @@ async def run_scan_task(ctx: dict[str, Any], scan_id: str, repo_url: str | None 
                     }
                 }
 
+                # Compute warnings_count from findings with REVIEW_REQUIRED / warning status
+                from lcc.api.warnings import WarningAnalyzer
+                warning_results = [
+                    {
+                        "component": {"name": f.component.name, "version": f.component.version},
+                        "status": "warning" if getattr(f, "requires_review", False) else "pass",
+                        "licenses": [{"license_expression": f.resolved_license or "UNKNOWN"}],
+                    }
+                    for f in report.findings
+                ]
+                warnings_summary = WarningAnalyzer.analyze_scan(warning_results)
+
                 scan.components = components
                 scan.status = "complete"
                 scan.components_count = report.summary.component_count
                 scan.violations_count = report.summary.violations
+                scan.warnings_count = warnings_summary.total_warnings
 
                 # Check for vulnerabilities in summary context
                 vuln_count = report.summary.context.get("vulnerabilities", 0)

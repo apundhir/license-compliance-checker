@@ -37,7 +37,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from lcc.api.auth_routes import create_auth_router
 from lcc.api.regulatory_routes import router as regulatory_router
-from lcc.api.warnings import WarningsSummary
+from lcc.api.warnings import WarningAnalyzer, WarningsSummary
 from lcc.auth.core import User, UserRole, get_current_active_user, require_role
 from lcc.auth.repository import UserRepository
 from lcc.config import load_config
@@ -147,7 +147,10 @@ def create_app(config_path: Path | None = None) -> FastAPI:
     app.state.limiter = limiter
     app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-    allowed_origins = os.getenv("LCC_ALLOWED_ORIGINS", "*").split(",")
+    # CORS: default to empty string (no origins) — must be explicitly set in production
+    # Example: LCC_ALLOWED_ORIGINS=https://yourdomain.com,https://app.yourdomain.com
+    _origins_raw = os.getenv("LCC_ALLOWED_ORIGINS", "")
+    allowed_origins = [o.strip() for o in _origins_raw.split(",") if o.strip()]
     app.add_middleware(
         CORSMiddleware,
         allow_origins=allowed_origins,
@@ -216,13 +219,20 @@ def create_app(config_path: Path | None = None) -> FastAPI:
         repo: ScanRepository = Depends(get_repository),
         current_user: User = Depends(require_role(UserRole.ADMIN))
     ):
-        """Reset application state (delete all scans, clear cache)."""
+        """Reset application state (delete all scans, clear LCC-scoped cache).
+
+        Only deletes keys prefixed with 'lcc:' or 'scan:' — does NOT call
+        flushdb() which would wipe any co-resident Redis data.
+        """
         # Delete all scans
         await repo.delete_all_scans()
 
-        # Clear Redis (cache and progress)
+        # Clear only LCC-namespaced Redis keys (scan progress + cache)
         redis = await redis_from_url(config.redis_url)
-        await redis.flushdb()
+        for pattern in ("scan:*", "lcc:*"):
+            keys = await redis.keys(pattern)
+            if keys:
+                await redis.delete(*keys)
         await redis.close()
 
     @app.get("/scans", response_model=list[ScanSummaryDTO])
@@ -269,6 +279,7 @@ def create_app(config_path: Path | None = None) -> FastAPI:
         return results
 
     @app.post("/scans", response_model=ScanSummaryDTO, status_code=201)
+    @limiter.limit("10/minute")  # Expensive: triggers git clone + full scan
     async def create_scan(
         request: Request,
         payload: ScanRequest,
@@ -539,8 +550,9 @@ def create_app(config_path: Path | None = None) -> FastAPI:
         if not scan:
             raise HTTPException(status_code=404, detail="Scan not found")
 
-        # For MVP, returning empty summary as the logic requires re-evaluating policy
-        # or extracting from report if stored.
-        return WarningsSummary(total_warnings=0, warnings=[])
+        # Extract component results from stored report and run WarningAnalyzer
+        report = scan.report or {}
+        component_results = report.get("findings", report.get("components", []))
+        return WarningAnalyzer.analyze_scan(component_results)
 
     return app

@@ -294,7 +294,7 @@ contexts:
         )
 
         # Should succeed
-        assert scan_response.status_code in [201, 400, 500]
+        assert scan_response.status_code in [201, 400]  # 500 no longer acceptable
 
         # Step 4: Regular user tries to delete policy (should fail)
         delete_response = test_app.delete(
