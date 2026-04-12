@@ -127,11 +127,5 @@ jobs:
         # fail and the fallback step below will attempt
         # publication with an API token.
 
-      # ---------------------------------------------------
-      # Fallback: API token from repository secrets
-      # ---------------------------------------------------
-      - name: Publish to PyPI (API token fallback)
-        if: failure() && secrets.PYPI_TOKEN != ''
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          password: ${{ secrets.PYPI_TOKEN }}
+      # NOTE: OIDC trusted publishing is the only supported method.
+      # Configure a Trusted Publisher on pypi.org (see header comments).

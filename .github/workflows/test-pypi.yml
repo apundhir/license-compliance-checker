@@ -14,8 +14,6 @@
 #        - Repository: license-compliance-checker
 #        - Workflow:    test-pypi.yml
 #        - Environment: testpypi
-#   If OIDC is not configured, the workflow falls back to
-#   secrets.TEST_PYPI_TOKEN (classic API token).
 # ---------------------------------------------------------------
 
 name: Publish to TestPyPI
@@ -74,8 +72,6 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
 
-    # The "testpypi" environment keeps deployment logs separate
-    # from production publishes.
     environment:
       name: testpypi
       url: https://test.pypi.org/project/license-compliance-checker/
@@ -95,20 +91,7 @@ jobs:
       - name: List artifacts to publish
         run: ls -lh dist/
 
-      # ---------------------------------------------------
-      # Primary method: OIDC trusted publishing (no secrets)
-      # ---------------------------------------------------
       - name: Publish to TestPyPI (OIDC trusted publisher)
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: https://test.pypi.org/legacy/
-
-      # ---------------------------------------------------
-      # Fallback: API token from repository secrets
-      # ---------------------------------------------------
-      - name: Publish to TestPyPI (API token fallback)
-        if: failure() && secrets.TEST_PYPI_TOKEN != ''
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          repository-url: https://test.pypi.org/legacy/
-          password: ${{ secrets.TEST_PYPI_TOKEN }}
