@@ -152,6 +152,7 @@ class RegulatoryAssessment:
     overall_status: str = "non_compliant"  # "compliant", "partial", "non_compliant"
     recommendations: list[str] = field(default_factory=list)
     assessed_at: str = ""  # ISO 8601 datetime
+    scope_note: str = ""  # Disclaimer / scoping note for the assessment
 
     def to_dict(self) -> dict[str, Any]:
         """Serialise to a plain dictionary."""
@@ -168,6 +169,7 @@ class RegulatoryAssessment:
             "overall_status": self.overall_status,
             "recommendations": list(self.recommendations),
             "assessed_at": self.assessed_at,
+            "scope_note": self.scope_note,
         }
         return data
 

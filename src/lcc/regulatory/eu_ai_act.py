@@ -43,6 +43,77 @@ from lcc.regulatory.frameworks import (
 )
 
 # -----------------------------------------------------------------------
+# Article 53 scope note — attached to every assessment result
+# -----------------------------------------------------------------------
+ARTICLE_53_SCOPE_NOTE = (
+    "Evaluates model card documentation completeness and license compliance "
+    "for AI components in this scan. This supports Article 53 transparency "
+    "obligations but does not constitute a full compliance determination. "
+    "Article 53 applies to GPAI model PROVIDERS — organisations placing GPAI "
+    "models on the EU market. Downstream deployers have different obligations. "
+    "Legal review is required for full compliance assessment."
+)
+
+# -----------------------------------------------------------------------
+# Dataset risk registry for training data commercial-use classification
+# -----------------------------------------------------------------------
+DATASET_RISK_REGISTRY: dict[str, dict] = {
+    # Safe for commercial use
+    "wikipedia": {"commercial_use": True, "license": "CC-BY-SA-4.0", "risk": "low"},
+    "wikitext": {"commercial_use": True, "license": "CC-BY-SA-4.0", "risk": "low"},
+    "common_crawl": {"commercial_use": True, "license": "public-domain", "risk": "low"},
+    "c4": {"commercial_use": True, "license": "ODC-BY", "risk": "low"},
+    "openwebtext": {"commercial_use": True, "license": "MIT", "risk": "low"},
+    "redpajama": {"commercial_use": True, "license": "Apache-2.0", "risk": "low"},
+    "the_pile_uncopyrighted": {"commercial_use": True, "license": "MIT", "risk": "low"},
+
+    # Requires review
+    "books3": {"commercial_use": False, "license": "unknown", "risk": "high",
+               "note": "Copyright claims pending litigation"},
+    "the_pile": {"commercial_use": None, "license": "mixed", "risk": "high",
+                 "note": "Contains Books3 subset with copyright concerns"},
+    "openai_api": {"commercial_use": False, "license": "OpenAI-ToS", "risk": "critical",
+                   "note": "Using OpenAI API outputs to train models violates OpenAI ToS"},
+    "chatgpt": {"commercial_use": False, "license": "OpenAI-ToS", "risk": "critical",
+                "note": "ChatGPT-derived data violates OpenAI ToS for model training"},
+    "sharegpt": {"commercial_use": False, "license": "OpenAI-ToS", "risk": "high",
+                 "note": "Derived from ChatGPT conversations - ToS violation for training"},
+    "alpaca": {"commercial_use": False, "license": "CC-BY-NC-4.0", "risk": "high",
+               "note": "Non-commercial only; also derived from OpenAI API"},
+    "dolly": {"commercial_use": True, "license": "CC-BY-SA-3.0", "risk": "low"},
+    "orca": {"commercial_use": False, "license": "CC-BY-NC-4.0", "risk": "high",
+             "note": "Non-commercial; uses GPT-4 generated data"},
+}
+
+
+def _classify_dataset_risk(dataset_name: str) -> dict:
+    """Classify a dataset's commercial use risk.
+
+    Normalises the dataset name and checks it against
+    :data:`DATASET_RISK_REGISTRY`.  Falls back to an ``"unknown"`` result
+    when no registry entry is found.
+
+    Args:
+        dataset_name: Raw dataset name (may contain hyphens, slashes, or
+            mixed case).
+
+    Returns:
+        Dictionary with keys ``commercial_use``, ``license``, ``risk``,
+        ``dataset``, and optionally ``note``.
+    """
+    name_lower = dataset_name.lower().replace("-", "_").replace("/", "_")
+    for key, info in DATASET_RISK_REGISTRY.items():
+        if key in name_lower:
+            return {**info, "dataset": dataset_name}
+    return {
+        "commercial_use": None,
+        "license": "unknown",
+        "risk": "unknown",
+        "dataset": dataset_name,
+    }
+
+
+# -----------------------------------------------------------------------
 # Well-known open-source licences that imply a clear copyright policy
 # -----------------------------------------------------------------------
 _KNOWN_OPEN_LICENSES: set[str] = {
@@ -399,6 +470,7 @@ class EUAIActAssessor:
             overall_status=overall,
             recommendations=recommendations,
             assessed_at=datetime.now(UTC).isoformat(),
+            scope_note=ARTICLE_53_SCOPE_NOTE,
         )
 
     # ------------------------------------------------------------------ #
@@ -445,6 +517,7 @@ class EUAIActAssessor:
             "partial": partial,
             "non_compliant": non_compliant,
             "compliance_percentage": round(compliance_pct, 1),
+            "scope_note": ARTICLE_53_SCOPE_NOTE,
         }
 
         return RegulatoryReport(
@@ -664,18 +737,23 @@ class EUAIActAssessor:
     ) -> Article53Obligation:
         """Art. 53(1)(d) — Training data summary.
 
-        * *met* if metadata contains training data information
-          (``datasets``, ``training_data_sources``, or
-          ``training_data_description``).
-        * *not_met* if no training data information is available.
+        Dataset names are checked against :data:`DATASET_RISK_REGISTRY` to
+        detect commercial-use risks (e.g. OpenAI ToS violations).
+
+        * *met* — training data info is present **and** all named datasets
+          are classified as low-risk for commercial use.
+        * *partial* — training data info is present but some datasets are
+          unknown or have unresolved commercial-use status.
+        * *not_met* — no training data info at all, **or** at least one
+          dataset is classified as high-risk or critical.
         """
         evidence: list[str] = []
         gaps: list[str] = []
 
         training_info = get_training_data_info(finding)
-        datasets = training_info["datasets"]
-        sources = training_info["sources"]
-        description = training_info["description"]
+        datasets: list[str] = training_info["datasets"]
+        sources: list[str] = training_info["sources"]
+        description: str | None = training_info["description"]
 
         has_info = bool(datasets or sources or description)
 
@@ -684,7 +762,6 @@ class EUAIActAssessor:
         if sources:
             evidence.append(f"Training data sources: {', '.join(sources)}")
         if description:
-            # Truncate long descriptions in evidence
             desc_preview = (
                 description[:120] + "..."
                 if len(description) > 120
@@ -692,11 +769,56 @@ class EUAIActAssessor:
             )
             evidence.append(f"Training data description: {desc_preview}")
 
-        if has_info:
-            status = "met"
-        else:
-            status = "not_met"
+        if not has_info:
             gaps.append("No training data summary available")
+            return Article53Obligation(
+                article=template["article"],
+                title=template["title"],
+                description=template["description"],
+                status="not_met",
+                evidence=evidence,
+                gaps=gaps,
+            )
+
+        # Classify each named dataset against the risk registry
+        all_names = list(datasets) + list(sources)
+        classifications: list[dict] = [
+            _classify_dataset_risk(name) for name in all_names
+        ]
+
+        has_critical_or_high = any(
+            c["risk"] in ("critical", "high") for c in classifications
+        )
+        has_unknown = any(c["risk"] == "unknown" for c in classifications)
+
+        for c in classifications:
+            ds = c["dataset"]
+            lvl = c["risk"]
+            if lvl in ("critical", "high"):
+                note = c.get("note", "")
+                gaps.append(
+                    f"Dataset '{ds}' risk={lvl}: {note}"
+                    if note
+                    else f"Dataset '{ds}' risk={lvl}"
+                )
+                evidence.append(
+                    f"[{lvl.upper()}] '{ds}' — license: {c['license']}"
+                )
+            elif lvl == "unknown":
+                gaps.append(
+                    f"Dataset '{ds}' license unknown — commercial use unverified"
+                )
+            else:
+                evidence.append(
+                    f"[low] '{ds}' — license: {c['license']}, commercial use: permitted"
+                )
+
+        if has_critical_or_high:
+            status = "not_met"
+        elif has_unknown:
+            status = "partial"
+        else:
+            status = "met"
 
         return Article53Obligation(
             article=template["article"],
