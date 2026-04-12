@@ -117,6 +117,8 @@ def build_parser() -> argparse.ArgumentParser:
     scan_parser.add_argument("--cache-ttl", type=int, default=3600, help="Cache TTL in seconds")
     scan_parser.add_argument("--git", action="append", default=[], help="Clone git repository url[@ref] and scan")
     scan_parser.add_argument("--git-depth", type=int, default=1, help="Depth when cloning git repositories")
+    scan_parser.add_argument("--include-transitive", action="store_true",
+                             help="Include transitive dependencies (requires lock file: poetry.lock or package-lock.json)")
     scan_parser.add_argument("--check-vulnerabilities", action="store_true", help="Check for known vulnerabilities (OSV)")
     scan_parser.add_argument("--check-compatibility", action="store_true", help="Run license compatibility analysis")
     scan_parser.add_argument("--project-license", type=str, help="SPDX identifier for the project license (e.g. Apache-2.0)")
@@ -321,6 +323,19 @@ def handle_scan(args: argparse.Namespace) -> int:
     detectors = build_detectors(config)
     resolvers = build_resolvers(config, cache)
     scanner = Scanner(detectors, resolvers, config)
+
+    # Transitive dependency guidance
+    if getattr(args, "include_transitive", False):
+        scan_path = Path(args.path)
+        has_lock = any((scan_path / f).exists() for f in ("poetry.lock", "package-lock.json", "yarn.lock", "Pipfile.lock"))
+        if not has_lock:
+            console.print(
+                "[yellow]⚠ --include-transitive requires a lock file (poetry.lock, "
+                "package-lock.json, yarn.lock). No lock file found — only direct "
+                "dependencies will be scanned.[/yellow]"
+            )
+        else:
+            console.print("[dim]Transitive analysis enabled via lock file.[/dim]")
 
     targets = determine_targets(Path(args.path), args.manifest, args.recursive, args.exclude)
     total_errors: list[str] = []
