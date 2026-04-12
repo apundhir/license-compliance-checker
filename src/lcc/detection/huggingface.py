@@ -24,10 +24,14 @@ Looks for:
 
 from __future__ import annotations
 
+import logging
+import re
 from pathlib import Path
 
 from lcc.detection.base import Detector
 from lcc.models import Component, ComponentType
+
+logger = logging.getLogger(__name__)
 
 
 class HuggingFaceDetector(Detector):
@@ -77,6 +81,12 @@ class HuggingFaceDetector(Detector):
             if list(path.glob("model-*.safetensors")):
                 return True
 
+        # Also support GGUF (Ollama/llama.cpp) and ONNX model files
+        if any(path.rglob("*.gguf")):
+            return True
+        if any(path.rglob("*.onnx")):
+            return True
+
         return False
 
     def discover(self, path: Path) -> list[Component]:
@@ -93,6 +103,20 @@ class HuggingFaceDetector(Detector):
             return []
 
         components = []
+
+        # Discover GGUF models
+        gguf_files = list(path.rglob("*.gguf"))
+        for gguf_path in gguf_files:
+            components.extend(self._discover_gguf(gguf_path))
+
+        # Discover ONNX models
+        onnx_files = list(path.rglob("*.onnx"))
+        for onnx_path in onnx_files:
+            components.extend(self._discover_onnx(onnx_path))
+
+        # If we already found GGUF/ONNX components but no HF config, return early
+        if components and not (path / "config.json").exists():
+            return components
 
         # Parse config.json for model info
         config_file = path / "config.json"
@@ -273,6 +297,106 @@ class HuggingFaceDetector(Detector):
 
         return "unknown"
 
+    def _extract_gguf_metadata(self, gguf_path: Path) -> dict:
+        """Extract license and name from GGUF binary metadata (first 64KB scan)."""
+        metadata: dict = {}
+        try:
+            with open(gguf_path, "rb") as f:
+                header = f.read(65536)  # Read first 64KB
+
+            # Verify GGUF magic
+            if header[:4] != b"GGUF":
+                return metadata
+
+            # Extract model name from filename
+            stem = gguf_path.stem
+            metadata["filename"] = stem
+
+            # Try to infer source repo from filename convention
+            stem_lower = stem.lower()
+            if "llama" in stem_lower:
+                metadata["inferred_source"] = "meta-llama"
+            elif "mistral" in stem_lower or "mixtral" in stem_lower:
+                metadata["inferred_source"] = "mistralai"
+            elif "qwen" in stem_lower:
+                metadata["inferred_source"] = "Qwen"
+            elif "gemma" in stem_lower:
+                metadata["inferred_source"] = "google"
+            elif "phi" in stem_lower:
+                metadata["inferred_source"] = "microsoft"
+
+            # Scan for license strings in the text portion
+            text = header.decode("utf-8", errors="ignore")
+            known_licenses = [
+                "apache-2.0",
+                "apache 2.0",
+                "mit",
+                "llama 2",
+                "llama 3",
+                "llama3",
+                "llama2",
+                "gemma",
+                "mistral",
+                "cc-by",
+                "openrail",
+                "rail",
+                "non-commercial",
+            ]
+            text_lower = text.lower()
+            for lic in known_licenses:
+                if lic in text_lower:
+                    metadata["detected_license_hint"] = lic
+                    break
+
+        except Exception as e:
+            logger.warning("Failed to read GGUF metadata from %s: %s", gguf_path, e)
+        return metadata
+
+    def _discover_gguf(self, gguf_path: Path) -> list[Component]:
+        """Create a Component for a GGUF model file."""
+        meta = self._extract_gguf_metadata(gguf_path)
+        name = meta.get("filename", gguf_path.stem)
+        metadata: dict = {
+            "description": f"GGUF model: {name}",
+            "format": "gguf",
+            "model_type": "gguf_model",
+            "framework": "llama.cpp/ollama",
+        }
+        if "inferred_source" in meta:
+            metadata["inferred_source"] = meta["inferred_source"]
+        if "detected_license_hint" in meta:
+            metadata["detected_license_hint"] = meta["detected_license_hint"]
+        return [
+            Component(
+                type=ComponentType.AI_MODEL,
+                name=name,
+                version="unknown",
+                namespace="gguf",
+                path=gguf_path,
+                metadata=metadata,
+            )
+        ]
+
+    def _discover_onnx(self, onnx_path: Path) -> list[Component]:
+        """Create a Component for an ONNX model file."""
+        name = onnx_path.stem
+        metadata: dict = {
+            "description": f"ONNX model: {name}",
+            "format": "onnx",
+            "model_type": "onnx_model",
+            "framework": "onnxruntime",
+        }
+        return [
+            Component(
+                type=ComponentType.AI_MODEL,
+                name=name,
+                version="unknown",
+                namespace="onnx",
+                path=onnx_path,
+                metadata=metadata,
+            )
+        ]
+
     def _extract_git_url(self, path: Path) -> str:
         """
         Extract git remote URL from .git directory.
@@ -288,7 +412,6 @@ class HuggingFaceDetector(Detector):
             if git_config.exists():
                 content = git_config.read_text(encoding="utf-8")
                 # Look for Hugging Face URL
-                import re
                 match = re.search(r'url\s*=\s*(https://huggingface\.co/[^\s]+)', content)
                 if match:
                     return match.group(1)
@@ -296,3 +419,119 @@ class HuggingFaceDetector(Detector):
             pass
 
         return ""
+
+
+class HuggingFaceReferenceDetector(Detector):
+    """
+    Detector for HuggingFace models referenced by Hub ID in source code.
+
+    Scans Python (.py), YAML (.yaml, .yml), and JSON (.json) files for
+    HuggingFace model ID references such as:
+        AutoModel.from_pretrained("meta-llama/Llama-3.1-70B-Instruct")
+
+    For each discovered model ID, queries the HuggingFace Hub API to
+    retrieve license and metadata without requiring a local download.
+    """
+
+    _SOURCE_EXTENSIONS = {".py", ".yaml", ".yml", ".json"}
+    _SKIP_DIRS = {
+        ".git", "__pycache__", ".tox", ".venv", "venv", "node_modules",
+        ".mypy_cache", ".pytest_cache", "dist", "build", ".eggs",
+    }
+
+    def __init__(self, hf_token: str | None = None) -> None:
+        super().__init__(name="huggingface-reference")
+        self._hf_token = hf_token
+
+    def supports(self, path: Path) -> bool:
+        """Return True for any directory (we walk it to find source files)."""
+        return path.is_dir()
+
+    def discover(self, path: Path) -> list[Component]:
+        """
+        Walk source files under *path*, extract HF model ID references,
+        fetch metadata from the Hub API, and return one Component per unique
+        model ID found.
+
+        Args:
+            path: Project root directory to scan
+
+        Returns:
+            List of Component objects for each referenced HF model
+        """
+        from lcc.resolution.hf_hub_resolver import (
+            extract_model_ids_from_source,
+            fetch_model_info,
+        )
+
+        if not self.supports(path):
+            return []
+
+        # Collect all model IDs found across source files
+        all_model_ids: set[str] = set()
+
+        for source_file in self._walk_source_files(path):
+            try:
+                content = source_file.read_text(encoding="utf-8", errors="replace")
+            except OSError as exc:
+                logger.debug("Could not read %s: %s", source_file, exc)
+                continue
+
+            ids = extract_model_ids_from_source(content)
+            if ids:
+                logger.debug("Found model IDs %s in %s", ids, source_file)
+            all_model_ids.update(ids)
+
+        components: list[Component] = []
+        for model_id in sorted(all_model_ids):
+            info = fetch_model_info(model_id, hf_token=self._hf_token)
+
+            metadata: dict = {
+                "description": f"HuggingFace model referenced by ID: {model_id}",
+                "source": "hub_api",
+            }
+
+            if info is not None:
+                if info.license:
+                    metadata["license_from_card"] = info.license
+                if info.datasets:
+                    metadata["datasets"] = info.datasets
+                if info.tags:
+                    metadata["tags"] = info.tags
+                if info.pipeline_tag:
+                    metadata["pipeline_tag"] = info.pipeline_tag
+                if info.use_restrictions:
+                    metadata["use_restrictions"] = info.use_restrictions
+            else:
+                metadata["hub_api_available"] = False
+
+            # model_id is "org/name"; split into namespace + name
+            parts = model_id.split("/", 1)
+            namespace = parts[0] if len(parts) == 2 else "huggingface"
+            name = parts[1] if len(parts) == 2 else model_id
+
+            component = Component(
+                type=ComponentType.AI_MODEL,
+                name=name,
+                version="unknown",
+                namespace=namespace,
+                path=path,
+                metadata=metadata,
+            )
+            components.append(component)
+
+        return components
+
+    # ------------------------------------------------------------------
+    # Helpers
+    # ------------------------------------------------------------------
+
+    def _walk_source_files(self, root: Path):
+        """Yield source files under *root*, skipping common non-source dirs."""
+        for item in root.iterdir():
+            if item.is_dir():
+                if item.name in self._SKIP_DIRS:
+                    continue
+                yield from self._walk_source_files(item)
+            elif item.is_file() and item.suffix in self._SOURCE_EXTENSIONS:
+                yield item
